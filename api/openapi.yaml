@@ -1,0 +1,496 @@
+openapi: 3.0.0
+info:
+  title: Ecampus UniPlanner API
+  description: |
+    API для студенческого органайзера. Поддерживает регистрацию, вход, управление задачами и заметками, 
+    а также просмотр расписания по группе.
+  version: 1.0.0
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Локальный сервер
+
+tags:
+  - name: auth
+    description: Аутентификация
+  - name: tasks
+    description: Задачи пользователя
+  - name: notes
+    description: Заметки пользователя
+  - name: schedule
+    description: Расписание занятий
+  - name: groups
+    description: Справочник групп
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Общие
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+      required: [code, message]
+
+    # Пользователь
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+        groupName:
+          type: string
+      required: [id, email, fullName, groupName]
+
+    RegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+        fullName:
+          type: string
+        groupName:
+          type: string
+      required: [email, password, fullName, groupName]
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required: [email, password]
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+      required: [token, user]
+
+    # Задачи
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        deadline:
+          type: string
+          format: date-time
+        priority:
+          type: integer
+          minimum: 1
+          maximum: 5
+        completed:
+          type: boolean
+      required: [id, title, deadline, priority, completed]
+
+    TaskInput:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        deadline:
+          type: string
+          format: date-time
+        priority:
+          type: integer
+        completed:
+          type: boolean
+      required: [title, deadline, priority]
+
+    # Заметки
+    Note:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        content:
+          type: string
+      required: [id, title, content]
+
+    NoteInput:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+      required: [title, content]
+
+    # Расписание
+    Lesson:
+      type: object
+      properties:
+        id:
+          type: integer
+        group:
+          type: string
+        date:
+          type: string
+          format: date
+        weekday:
+          type: string
+        discipline:
+          type: string
+        type:
+          type: string
+        timeStart:
+          type: string
+          format: time
+        timeEnd:
+          type: string
+          format: time
+        teacher:
+          type: string
+        room:
+          type: string
+        subgroup:
+          type: string
+          nullable: true
+      required: [id, group, discipline, type, timeStart, timeEnd]
+
+    # Группы
+    GroupInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        institute:
+          type: string
+        specialty:
+          type: string
+      required: [id, name]
+
+paths:
+  /auth/register:
+    post:
+      tags: [auth]
+      summary: Регистрация
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Пользователь создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Ошибка ввода
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Вход
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Успешный вход
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Неверные данные
+
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: Профиль
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Данные пользователя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Не авторизован
+
+  /tasks:
+    get:
+      tags: [tasks]
+      summary: Список задач
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Список задач
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '401':
+          description: Не авторизован
+
+    post:
+      tags: [tasks]
+      summary: Создать задачу
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskInput'
+      responses:
+        '201':
+          description: Задача создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          description: Ошибка валидации
+        '401':
+          description: Не авторизован
+
+  /tasks/{id}:
+    get:
+      tags: [tasks]
+      summary: Получить задачу
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Задача найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          description: Не найдена
+        '401':
+          description: Не авторизован
+
+    put:
+      tags: [tasks]
+      summary: Обновить задачу
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskInput'
+      responses:
+        '200':
+          description: Обновлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+        '404':
+        '401':
+
+    delete:
+      tags: [tasks]
+      summary: Удалить задачу
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '204':
+          description: Удалена
+        '404':
+        '401':
+
+  /notes:
+    get:
+      tags: [notes]
+      summary: Список заметок
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Список заметок
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Note'
+        '401':
+
+    post:
+      tags: [notes]
+      summary: Создать заметку
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteInput'
+      responses:
+        '201':
+          description: Заметка создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '400':
+        '401':
+
+  /notes/{id}:
+    get:
+      tags: [notes]
+      summary: Получить заметку
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '404':
+        '401':
+
+    put:
+      tags: [notes]
+      summary: Обновить заметку
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteInput'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '400':
+        '404':
+        '401':
+
+    delete:
+      tags: [notes]
+      summary: Удалить заметку
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '204':
+          description: Удалена
+        '404':
+        '401':
+
+  /schedule:
+    get:
+      tags: [schedule]
+      summary: Расписание по группе
+      parameters:
+        - name: group
+          in: query
+          required: true
+          schema: { type: string }
+        - name: date
+          in: query
+          required: false
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Список занятий
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Lesson'
+        '400':
+          description: Неверные параметры
+        '404':
+          description: Группа не найдена
+
+  /groups:
+    get:
+      tags: [groups]
+      summary: Все группы
+      responses:
+        '200':
+          description: Список групп
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GroupInfo'
