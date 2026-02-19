@@ -1,54 +1,55 @@
-This is a Kotlin Multiplatform project targeting Android, Web.
+# Ecampus UniPlanner
 
-* [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./composeApp/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./composeApp/src/jvmMain/kotlin)
-    folder is the appropriate location.
+**Ecampus UniPlanner** — кроссплатформенный студенческий органайзер. Проект предоставляет единый интерфейс для просмотра расписания (автоматически получаемого с сайта университета), управления задачами, заметками и получения уведомлений.
 
-* [/shared](./shared/src) is for the code that will be shared between all targets in the project.
-  The most important subfolder is [commonMain](./shared/src/commonMain/kotlin). If preferred, you
-  can add code to the platform-specific folders here too.
+## Архитектура
 
-* [/webApp](./webApp) contains web React application. It uses the Kotlin/JS library produced
-  by the [shared](./shared) module.
+Проект представляет собой монорепозиторий, содержащий:
 
-### Build and Run Android Application
+- **Gradle-модули**:
+  - `shared` — общий Kotlin Multiplatform модуль с моделями данных (экспорт для JVM и JS).
+  - `backend` — серверное приложение на Kotlin + Ktor.
+  - `android` — Android-клиент на Jetpack Compose (в разработке).
 
-To build and run the development version of the Android app, use the run configuration from the run widget
-in your IDE’s toolbar or build it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:assembleDebug
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:assembleDebug
-  ```
+- **Внешние сервисы**:
+  - `web` — фронтенд на React + TypeScript + Vite.
+  - `parser` — микросервис на Python (FastAPI) для парсинга данных с информационной системы университета. За основу взят проект телеграм-бота [CampusBOT](https://github.com/alikhan902/CampusBOT).
 
-### Build and Run Web Application
+- **Общие артефакты**:
+  - `api/openapi.yaml` — спецификация OpenAPI для взаимодействия между компонентами.
 
-To build and run the development version of the web app, use the run configuration from the run widget
-in your IDE’s toolbar or run it directly from the terminal:
-1. Install [Node.js](https://nodejs.org/en/download) (which includes `npm`)
-2. Build Kotlin/JS shared code:
-   - on macOS/Linux
-     ```shell
-     ./gradlew :shared:jsBrowserDevelopmentLibraryDistribution
-     ```
-   - on Windows
-     ```shell
-     .\gradlew.bat :shared:jsBrowserDevelopmentLibraryDistribution
-     ```
-3. Build and run the web application
-   ```shell
-   npm install
-   npm run start
-   ```
+## Предполагаемый технологический стек
 
----
+| Компонент           | Технологии                                                                 |
+|---------------------|----------------------------------------------------------------------------|
+| Shared-модуль       | Kotlin Multiplatform, kotlinx.serialization,                               |
+| Бэкенд              | Kotlin, Ktor, Supabase (PostgreSQL), JWT                                   |
+| Веб-клиент          | React, TypeScript, Vite, shadcn/ui                                         |
+| Android-клиент      | Kotlin, Jetpack Compose, Material 3, Room                                  |
+| Парсер              | Python, Django / FastAPI, существующий код парсера                         |
+| Инфраструктура      | Gradle, GitHub Actions, Docker (опционально)                               |
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+## Структура проекта
+
+```bash
+ecampus-uniplanner/
+├── api/                      # OpenAPI спецификация
+├── backend/                  # Ktor-бэкенд
+├── shared/                   # KMP-модуль с моделями
+├── android/                  # Android-клиент (будет реализован)
+├── web/                      # React-клиент (будет реализован)
+├── parser/                   # Python-сервис парсера (будет реализован на основе CampusBot)
+├── gradle/                   # Gradle wrapper и version catalog
+├── build.gradle.kts          # Корневой скрипт сборки
+├── settings.gradle.kts       # Настройки проекта
+├── gradle.properties          # Свойства Gradle
+└── README.md                 # Этот файл
+```
+
+## Разработка
+
+- Все модели данных находятся в `shared/src/commonMain/kotlin/...`.
+- Для добавления новой модели:
+  1. Создайте data-класс с аннотациями `@Serializable` и `@JsExport`.
+  2. Выполните `./gradlew :shared:buildJsDevAndCopy`.
+  3. Импортируйте типы в React: `import type { Model } from './shared/shared.dev.d.ts'`.
