@@ -16,7 +16,7 @@
   - `parser` — микросервис на Python (FastAPI) для парсинга данных с информационной системы университета. За основу взят проект телеграм-бота [CampusBOT](https://github.com/alikhan902/CampusBOT).
 
 - **Общие артефакты**:
-  - `api/openapi.yaml` — спецификация OpenAPI для взаимодействия между компонентами.
+  - `api/*.yaml` — спецификация OpenAPI для взаимодействия между компонентами.
 
 ## Предполагаемый технологический стек
 
@@ -52,4 +52,4 @@ ecampus-uniplanner/
 - Для добавления новой модели:
   1. Создайте data-класс с аннотациями `@Serializable` и `@JsExport`.
   2. Выполните `./gradlew :shared:buildJsDevAndCopy`.
-  3. Импортируйте типы в React: `import type { Model } from './shared/shared.dev.d.ts'`.
+  3. Импортируйте типы в React: `import type { Model } from './shared/kmp/shared.dev.d.ts'`.

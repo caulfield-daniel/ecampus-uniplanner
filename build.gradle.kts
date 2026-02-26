@@ -1,85 +1,114 @@
-import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin.Companion.kotlinNodeJsRootExtension
-
 plugins {
-    // this is necessary to avoid the plugins to be loaded multiple times
-    // in each subproject's classloader
     alias(libs.plugins.kotlinMultiplatform) apply false
+    alias(libs.plugins.kotlinSerialization) apply false
+    alias(libs.plugins.buildConfig) apply false
 }
 
-// ==================== ГЛОБАЛЬНЫЕ ЗАДАЧИ ====================
+// ============================================
+// ГЛОБАЛЬНЫЕ ЗАДАЧИ (группа "ecampus")
+// ============================================
 
 /**
- * Сборка development версии JS из shared и копирование в web
+ * Сборка development JS (shared) и копирование в web
  */
 tasks.register("buildJsDev") {
-    dependsOn(":shared:buildJsDevAndCopy")
-    description = "Сборка development JS из shared-модуля и копирование в web/src/shared"
+    group = "ecampus"
+    description = "Сборка development JS из shared-модуля и копирование в web/src/shared/kmp"
+    dependsOn(":shared:copyJsToWebDev")
 }
 
 /**
- * Сборка production версии JS из shared и копирование в web
+ * Сборка production JS (shared) и копирование в web
  */
 tasks.register("buildJsProd") {
+    group = "ecampus"
+    description = "Сборка production JS из shared-модуля и копирование в web/src/shared/kmp"
     dependsOn(":shared:copyJsToWebProd")
-    description = "Сборка production JS из shared-модуля и копирование в web/src/shared"
 }
 
 /**
- * Полная development сборка проекта
- * (сейчас только shared, позже добавим backend и android)
+ * Полная development сборка проекта (shared + позже backend/android)
  */
 tasks.register("buildAllDev") {
-    dependsOn(
-        ":shared:buildJsDevAndCopy"
-        // ":backend:build",
-        // ":android:assembleDebug"
-    )
-    description = "Полная development сборка проекта (shared JS dev + копирование)"
+    group = "ecampus"
+    description = "Полная development сборка проекта"
+    dependsOn(":shared:copyJsToWebDev")
+    // TODO добавить backend и android
 }
 
 /**
- * Полная production сборка проекта
+ * Полная production сборка проекта (shared + позже backend/android)
  */
 tasks.register("buildAll") {
-    dependsOn(
-        ":shared:buildSharedWithJs"
-        // ":backend:build",
-        // ":android:assembleRelease"
-    )
-    description = "Полная production сборка проекта (shared + JS prod + копирование)"
+    group = "ecampus"
+    description = "Полная production сборка проекта"
+    dependsOn(":shared:copyJsToWebProd")
+    // TODO добавить backend и android
 }
 
 /**
- * Очистка всех сгенерированных артефактов, включая web/src/shared
+ * Очистка всех build-директорий и сгенерированных shared-файлов в web
  */
 tasks.register("cleanAll") {
+    group = "ecampus"
+    description = "Очистка всех build-директорий и сгенерированных shared-файлов в web"
     dependsOn(
+        "clean",
         ":shared:clean",
-        ":shared:cleanWebShared"
+        ":shared:cleanWebKmp"
     )
-    description = "Очистка всех build-директорий и web/src/shared"
 }
 
 /**
- * Пересборка development JS (clean + build + copy)
+ * Полная пересборка development JS
  */
 tasks.register("rebuildJsDev") {
-    dependsOn(":shared:rebuildJsDev")
+    group = "ecampus"
     description = "Полная пересборка development JS (clean → build → copy)"
+    dependsOn(":shared:rebuildJsDev")
 }
 
 /**
- * Показать все доступные задачи верхнего уровня
+ * Полная пересборка production JS
+ */
+tasks.register("rebuildJsProd") {
+    group = "ecampus"
+    description = "Полная пересборка production JS (clean → build → copy)"
+    dependsOn(":shared:rebuildJsProd")
+}
+
+/**
+ * Информационная задача — список доступных команд
  */
 tasks.register("showTasks") {
+    group = "ecampus"
+    description = "Показать все доступные задачи верхнего уровня"
     doLast {
-        println("\nДоступные задачи верхнего уровня:")
-        println("  buildJsDev       - собрать development JS и скопировать в web")
-        println("  buildJsProd      - собрать production JS и скопировать в web")
-        println("  buildAllDev      - полная development сборка проекта")
-        println("  buildAll         - полная production сборка проекта")
-        println("  cleanAll         - очистить все артефакты (build и web/shared)")
-        println("  rebuildJsDev     - пересобрать development JS с очисткой")
-        println("  showTasks        - показать это сообщение")
+        println("\n" + "=".repeat(60))
+        println("📦 ECAMPUS UNIPLANNER - Доступные задачи")
+        println("=".repeat(60))
+        println("\n🔧 СБОРКА:")
+        println("  buildJsDev       - Сборка development JS + копирование в web")
+        println("  buildJsProd      - Сборка production JS + копирование в web")
+        println("  buildAllDev      - Полная development сборка проекта")
+        println("  buildAll         - Полная production сборка проекта")
+        println("\n🧹 ОЧИСТКА:")
+        println("  cleanAll         - Очистить все build-директории + сгенерированные shared-файлы")
+        println("\n🔄 ПЕРЕСБОРКА:")
+        println("  rebuildJsDev     - Полная пересборка development JS")
+        println("  rebuildJsProd    - Полная пересборка production JS")
+        println("\nℹ️  ИНФО:")
+        println("  showTasks        - Показать это сообщение")
+        println("  tasks            - Показать все задачи Gradle")
+        println("\n" + "=".repeat(60))
+        println("📁 Сгенерированные файлы: ./web/src/shared/kmp/shared.dev.* и shared.prod.*")
+        println("=".repeat(60) + "\n")
+    }
+}
+
+// Небольшое дополнение к задаче help
+tasks.named("help") {
+    doLast {
+        println("\n💡 Для списка задач Ecampus используйте: ./gradlew showTasks\n")
     }
 }

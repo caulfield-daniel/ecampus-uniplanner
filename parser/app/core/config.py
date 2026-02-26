@@ -35,7 +35,7 @@ class Settings(BaseSettings):
 
     # === OpenAPI документация ===
     app_title: str = "Ecampus UniPlanner Parser API"
-    app_version: str = "0.1.0"
+    app_version: str = "1.0.0"
     app_description: str = "Микросервис для парсинга расписания университета"
 
 

@@ -3,10 +3,10 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.buildConfig)
 }
 
 kotlin {
-
     compilerOptions {
         freeCompilerArgs.add("-opt-in=kotlin.js.ExperimentalJsExport")
     }
@@ -28,10 +28,6 @@ kotlin {
             target = "es2015"
         }
     }
-    // js {
-    //     browser()
-    //     binaries.executable()
-    // }
 
     sourceSets {
         commonMain.dependencies {
@@ -43,132 +39,128 @@ kotlin {
     }
 }
 
-// ==================== ЗАДАЧИ ДЛЯ РАБОТЫ С JS ====================
+// ============================================
+// BUILD CONFIG (генерирует константы)
+// ============================================
+buildConfig {
+    useKotlinOutput {
+        internalVisibility = true
+        topLevelConstants = true
+    }
+    packageName("ru.uniplanner.shared.config")
+
+    buildConfigField(
+        "STRING",
+        "API_BASE_URL",
+        "\"${project.findProperty("apiBaseUrl") ?: "http://localhost:8080/api/v1"}\""
+    )
+}
+
+// ============================================
+// ЗАДАЧИ ДЛЯ РАЗРАБОТЧИКОВ (группа "kmp")
+// ============================================
 
 /**
- * Сборка development версии JS
+ * Сборка development JS (библиотека)
  */
 tasks.register("buildJsDev") {
     dependsOn("jsBrowserDevelopmentLibraryDistribution")
-    description = "Сборка development JS (library) из shared-модуля"
+    group = "kmp"
+    description = "Сборка development JS из shared-модуля"
 }
 
 /**
- * Копирование development JS в web/src/shared
- */
-tasks.register<Copy>("copyJsToWebDev") {
-    dependsOn("jsBrowserDevelopmentLibraryDistribution")
-
-    val sourceDir = layout.buildDirectory.dir("dist/js/developmentLibrary")
-    val targetDir = rootProject.layout.projectDirectory.dir("web/src/shared")
-
-    from(sourceDir) {
-        // Копируем только файлы, относящиеся к shared-модулю
-        include("shared.js", "shared.js.map", "shared.d.ts")
-        // Переименовываем с суффиксом .dev
-        rename { name ->
-            when (name) {
-                "shared.js" -> "shared.dev.js"
-                "shared.js.map" -> "shared.dev.js.map"
-                "shared.d.ts" -> "shared.dev.d.ts"
-                else -> name
-            }
-        }
-    }
-
-    into(targetDir)
-
-    doFirst {
-        println("📦 Копирование development JS...")
-        println("   Из: ${sourceDir.get().asFile.absolutePath}")
-        println("   В: ${targetDir.asFile.absolutePath}")
-
-        val sourceFile = sourceDir.get().asFile
-        if (!sourceFile.exists()) {
-            throw GradleException("❌ Исходная папка не существует! Сначала выполните: ./gradlew :shared:jsBrowserDevelopmentLibraryDistribution")
-        }
-
-        // Проверяем наличие нужных файлов
-        val requiredFiles = listOf("shared.js", "shared.js.map", "shared.d.ts")
-        val missing = requiredFiles.filter { !sourceFile.resolve(it).exists() }
-        if (missing.isNotEmpty()) {
-            throw GradleException("❌ В исходной папке отсутствуют файлы: $missing")
-        }
-        println("✅ Все необходимые файлы найдены")
-    }
-
-    description = "Копирует development JS и .d.ts файлы в web/src/shared"
-}
-
-/**
- * Объединённая задача: сборка dev JS + копирование
- */
-tasks.register("buildJsDevAndCopy") {
-    dependsOn("buildJsDev", "copyJsToWebDev")
-    description = "Сборка development JS и копирование в web/src/shared"
-}
-
-/**
- * Сборка production версии JS
+ * Сборка production JS (библиотека)
  */
 tasks.register("buildJsProd") {
     dependsOn("jsBrowserProductionLibraryDistribution")
-    description = "Сборка production JS (library) из shared-модуля"
+    group = "kmp"
+    description = "Сборка production JS из shared-модуля"
 }
 
 /**
- * Копирование production JS в web/src/shared
+ * Копирование development JS в web/src/shared/kmp
  */
-tasks.register<Copy>("copyJsToWebProd") {
-    dependsOn("jsBrowserProductionLibraryDistribution")
+tasks.register<Copy>("copyJsToWebDev") {
+    dependsOn("buildJsDev")
+    group = "kmp"
+    description = "Копирует development JS файлы в web/src/shared/kmp"
 
-    val sourceDir = layout.buildDirectory.dir("dist/js/productionLibrary")
-    val targetDir = rootProject.layout.projectDirectory.dir("web/src/shared")
+    val sourceDir = layout.buildDirectory.dir("dist/js/developmentLibrary")
+    val targetDir = rootProject.layout.projectDirectory.dir("web/src/shared/kmp")
 
     from(sourceDir) {
         include("shared.js", "shared.js.map", "shared.d.ts")
-        rename { name ->
-            when (name) {
-                "shared.js" -> "shared.prod.js"
-                "shared.js.map" -> "shared.prod.js.map"
-                "shared.d.ts" -> "shared.prod.d.ts"
-                else -> name
-            }
+        rename { fileName ->
+            fileName.replace("shared.", "shared.dev.")
         }
     }
-
     into(targetDir)
-    description = "Копирует production JS и .d.ts файлы в web/src/shared"
+
+    doLast {
+        logger.lifecycle("✅ Development JS скопирован в web/src/shared/kmp")
+    }
 }
 
 /**
- * Сборка всего shared модуля (JVM + JS production)
+ * Копирование production JS в web/src/shared/kmp
  */
-tasks.register("buildShared") {
-    dependsOn("build", "jsBrowserProductionLibraryDistribution")
-    description = "Сборка всего shared модуля (JVM + JS production)"
+tasks.register<Copy>("copyJsToWebProd") {
+    dependsOn("buildJsProd")
+    group = "kmp"
+    description = "Копирует production JS файлы в web/src/shared/kmp"
+
+    val sourceDir = layout.buildDirectory.dir("dist/js/productionLibrary")
+    val targetDir = rootProject.layout.projectDirectory.dir("web/src/shared/kmp")
+
+    from(sourceDir) {
+        include("shared.js", "shared.js.map", "shared.d.ts")
+        rename { fileName ->
+            fileName.replace("shared.", "shared.prod.")
+        }
+    }
+    into(targetDir)
+
+    doLast {
+        logger.lifecycle("✅ Production JS скопирован в web/src/shared/kmp")
+    }
 }
 
 /**
- * Сборка всего shared + копирование production JS
+ * Очистка только сгенерированных shared-файлов в web (не трогает index.ts и другие)
  */
-tasks.register("buildSharedWithJs") {
-    dependsOn("buildShared", "copyJsToWebProd")
-    description = "Сборка всего shared и копирование production JS в web"
+tasks.register<Delete>("cleanWebKmp") {
+    group = "kmp"
+    description = "Удаляет сгенерированные shared.dev.* и shared.prod.* файлы из web/src/shared/kmp"
+
+    val targetDir = rootProject.layout.projectDirectory.dir("web/src/shared/kmp").asFile
+    if (targetDir.exists()) {
+        delete(fileTree(targetDir) {
+            include(
+                "shared.dev.js", "shared.dev.js.map", "shared.dev.d.ts",
+                "shared.prod.js", "shared.prod.js.map", "shared.prod.d.ts"
+            )
+        })
+    }
+    doLast {
+        logger.lifecycle("🧹 Сгенерированные shared-файлы в web/src/shared/kmp удалены")
+    }
 }
 
 /**
- * Очистка сгенерированных JS файлов в web
- */
-tasks.register<Delete>("cleanWebShared") {
-    delete(rootProject.file("web/src/shared"))
-    description = "Удаляет все файлы из web/src/shared"
-}
-
-/**
- * Полная пересборка JS для web (dev)
+ * Полная пересборка development JS (clean → сборка → копирование)
  */
 tasks.register("rebuildJsDev") {
-    dependsOn("clean", "buildJsDevAndCopy")
-    description = "Полная пересборка development JS (clean → build dev → copy)"
+    dependsOn("clean", "copyJsToWebDev")
+    group = "kmp"
+    description = "Полная пересборка development JS (clean → build → copy)"
+}
+
+/**
+ * Полная пересборка production JS (clean → сборка → копирование)
+ */
+tasks.register("rebuildJsProd") {
+    dependsOn("clean", "copyJsToWebProd")
+    group = "kmp"
+    description = "Полная пересборка production JS (clean → build → copy)"
 }
