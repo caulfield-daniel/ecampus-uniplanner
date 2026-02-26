@@ -1,0 +1,201 @@
+# ============================================
+# PARSER API (FastAPI)
+# Внутренний API для синхронизации расписания
+# ============================================
+
+# --- Parser Schemas ---
+Institute:
+  type: object
+  description: 'Институт/факультет университета'
+  properties:
+    id:
+      type: integer
+    shortName:
+      type: string
+      maxLength: 10
+    name:
+      type: string
+      maxLength: 100
+    branchId:
+      type: integer
+      default: 1
+  required: [id, shortName, name]
+
+Specialty:
+  type: object
+  description: 'Образовательная программа/специальность'
+  properties:
+    id:
+      type: integer
+    name:
+      type: string
+      maxLength: 100
+    instituteId:
+      type: integer
+  required: [name, instituteId]
+
+AcademicGroup:
+  type: object
+  description: 'Академическая группа студентов'
+  properties:
+    id:
+      type: integer
+    name:
+      type: string
+      maxLength: 50
+    eduLevel:
+      type: string
+      maxLength: 50
+    specialtyId:
+      type: integer
+  required: [id, name, eduLevel, specialtyId]
+
+Teacher:
+  type: object
+  description: 'Преподаватель университета'
+  properties:
+    id:
+      type: integer
+    name:
+      type: string
+      maxLength: 100
+      default: 'неизвестно'
+  required: [id, name]
+
+Room:
+  type: object
+  description: 'Учебная аудитория'
+  properties:
+    id:
+      type: integer
+    name:
+      type: string
+      maxLength: 50
+  required: [id, name]
+
+ParserStatusResponse:
+  type: object
+  description: 'Статус работы парсера'
+  properties:
+    status:
+      type: string
+      enum: [running, idle, error]
+    lastUpdate:
+      type: string
+      format: date-time
+    groupsCount:
+      type: integer
+    lessonsCount:
+      type: integer
+
+ParserSyncRequest:
+  type: object
+  description: 'Запрос на синхронизацию расписания'
+  properties:
+    startDate:
+      type: string
+      format: date
+    endDate:
+      type: string
+      format: date
+    groups:
+      type: array
+      items:
+        type: string
+      description: 'Список групп для синхронизации'
+
+# --- Parser Paths ---
+parser_status:
+  get:
+    tags: [parser]
+    summary: Статус парсера
+    description: 'Возвращает текущий статус работы парсера'
+    responses:
+      '200':
+        description: Статус парсера
+        content:
+          application/json:
+            schema:
+              $ref: '#/ParserStatusResponse'
+
+parser_sync:
+  post:
+    tags: [parser]
+    summary: Запустить синхронизацию
+    description: 'Запускает парсинг расписания для указанных групп и дат'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/ParserSyncRequest'
+    responses:
+      '202':
+        description: Синхронизация запущена
+      '400':
+        description: Ошибка в параметрах
+
+parser_institutes:
+  get:
+    tags: [parser]
+    summary: Список институтов
+    description: 'Возвращает все институты из базы парсера'
+    responses:
+      '200':
+        description: Список институтов
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/Institute'
+
+parser_specialties:
+  get:
+    tags: [parser]
+    summary: Список специальностей
+    description: 'Возвращает все специальности из базы парсера'
+    parameters:
+      - name: instituteId
+        in: query
+        required: false
+        schema:
+          type: integer
+        description: 'Фильтр по ID института'
+    responses:
+      '200':
+        description: Список специальностей
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/Specialty'
+
+parser_groups:
+  get:
+    tags: [parser]
+    summary: Список академических групп
+    description: 'Возвращает все академические группы с расширенной информацией'
+    parameters:
+      - name: specialtyId
+        in: query
+        required: false
+        schema:
+          type: integer
+        description: 'Фильтр по ID специальности'
+      - name: instituteId
+        in: query
+        required: false
+        schema:
+          type: integer
+        description: 'Фильтр по ID института'
+    responses:
+      '200':
+        description: Список групп
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/AcademicGroup'
