@@ -29,7 +29,8 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.cors_origins.split(",")]
 
     # === Парсер ===
-    university_base_url: str = "https://ecampus.ncfu.ru/schedule"
+    university_base_url: str = "https://ecampus.ncfu.ru/"
+    university_schedule_url: str = university_base_url + "schedule/"
     request_timeout: int = 3
     retry_delay: int = 2
 

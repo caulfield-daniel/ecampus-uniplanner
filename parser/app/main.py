@@ -1,6 +1,5 @@
 from fastapi import FastAPI
-from .core.config import settings
-from .core.cors import setup_cors
+from app.core import settings, setup_cors
 
 
 # Инициализация приложения

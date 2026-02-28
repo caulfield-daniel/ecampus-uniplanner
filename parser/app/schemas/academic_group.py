@@ -19,7 +19,7 @@ class AcademicGroupCreate(BaseModel):
     id: int = Field(..., gt=0)
     name: str = Field(..., min_length=1, max_length=50)
     eduLevel: str = Field(..., min_length=1, max_length=50)
-    specialtyId: int = Field(..., gt=0)
+    # specialtyId: int = Field(..., gt=0)
 
 
 class AcademicGroupUpdate(BaseModel):
