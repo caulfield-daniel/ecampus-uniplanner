@@ -8,6 +8,26 @@ class Settings(BaseSettings):
     Загружает значения из .env файла или переменных окружения.
     """
 
+    # === База данных ===
+
+    db_host: str = "localhost"
+    db_port: int = 5432
+    db_name: str = "uniplanner_parser"
+    db_user: str = "postgres"
+    db_password: str = "postgres"
+    db_pool_size: int = 20
+    db_max_overflow: int = 40
+
+    @property
+    def database_url(self) -> str:
+        """Формирует синхронный URL для Alembic"""
+        return f"postgresql://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
+
+    @property
+    def async_database_url(self) -> str:
+        """Асинхронный URL для SQLAlchemy"""
+        return f"postgresql+asyncpg://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
