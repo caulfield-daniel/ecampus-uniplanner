@@ -11,13 +11,10 @@ from app.services.parser import (
     ScheduleParser,
 )
 
-
-from app.schemas import (
-    InstituteCreate,
-    SpecialtyCreate,
-    LessonCreate,
-    AcademicGroupCreate,
-)
+from app.schemas.institute import InstituteCreate
+from app.schemas.specialty import SpecialtyCreate
+from app.schemas.lesson import LessonCreate
+from app.schemas.academic_group import AcademicGroupCreate
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +117,7 @@ class ParserOrchestrator:
             try:
                 groups = await self._group_parser.fetch_groups(spec)
                 if self.group_repo:
-                    await self.group_repo(groups, 0) # 1 ДЛЯ ТЕСТИРОВАНИЯ
+                    await self.group_repo(groups, 0)  # 1 ДЛЯ ТЕСТИРОВАНИЯ
                 all_groups.extend(groups)
                 logger.debug(
                     "Для специальности %s получено %d групп",

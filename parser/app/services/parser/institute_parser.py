@@ -7,7 +7,7 @@ import json
 import logging
 from typing import List
 from bs4 import BeautifulSoup
-from app.schemas import InstituteCreate
+from app.schemas.institute import InstituteCreate
 from .base_parser import BaseParser
 
 logger = logging.getLogger(__name__)

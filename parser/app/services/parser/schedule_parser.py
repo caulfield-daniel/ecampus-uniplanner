@@ -8,7 +8,7 @@ from datetime import date
 from .base_parser import BaseParser
 from datetime import datetime
 
-from app.schemas import LessonCreate
+from app.schemas.lesson import LessonCreate
 
 logger = logging.getLogger(__name__)
 

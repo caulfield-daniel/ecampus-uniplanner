@@ -5,7 +5,8 @@
 import logging
 from typing import List, Dict, Any
 from .base_parser import BaseParser
-from app.schemas import AcademicGroupCreate, SpecialtyInfo
+from app.schemas.academic_group import AcademicGroupCreate
+from app.schemas.specialty import SpecialtyInfo
 
 logger = logging.getLogger(__name__)
 
