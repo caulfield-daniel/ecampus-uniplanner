@@ -1,8 +1,6 @@
-from __future__ import annotations
-
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import Optional
-from datetime import date, time
+from datetime import date as dateT, time
 
 
 class LessonBase(BaseModel):
@@ -13,7 +11,7 @@ class LessonBase(BaseModel):
 
     id: Optional[int] = Field(None, description="Уникальный идентификатор (внутренний)")
     group: str = Field(..., min_length=1, description="Название группы")
-    date: date = Field(..., description="Дата занятия")
+    date: dateT = Field(..., description="Дата занятия")
     weekday: str = Field(..., min_length=1, description="День недели")
     discipline: str = Field(..., min_length=1, description="Название дисциплины")
     type: str = Field(..., min_length=1, description="Тип занятия")
@@ -37,7 +35,7 @@ class LessonCreate(BaseModel):
 
     lessonId: int = Field(..., gt=0, description="Оригинальный ID занятия из API")
     groupId: int = Field(..., gt=0, description="ID группы (внешний ключ)")
-    date: date = Field(..., description="Дата занятия")
+    date: dateT = Field(..., description="Дата занятия")
     weekday: str = Field(..., min_length=1, description="День недели")
     discipline: str = Field(..., min_length=1, description="Название дисциплины")
     lessonType: str = Field(..., min_length=1, description="Тип занятия")

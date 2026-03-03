@@ -28,7 +28,7 @@ async def test_institute_parser():
 
     # 2. Создаём аутентификатор, который будет загружать куки из файла
     auth = auth_service.CookieFileAuthenticator(
-        cookies_file="../cookies.json"
+        cookies_file="/cookies.json"
     )
 
     # 3. Пытаемся восстановить сессию

@@ -16,6 +16,16 @@ from app.schemas.academic_group import AcademicGroupCreate
 from app.schemas.institute import InstituteCreate
 from app.schemas.lesson import LessonCreate
 from app.schemas.specialty import SpecialtyCreate
+from app.schemas.room import RoomCreate
+from app.schemas.teacher import TeacherCreate
+from app.tests.mock_repos import (
+    InMemoryRoomRepo,
+    InMemoryAcademicGroupRepo,
+    InMemoryInstituteRepo,
+    InMemoryLessonRepo,
+    InMemorySpecialtyRepo,
+    InMemoryTeacherRepo,
+)
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -23,41 +33,18 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# Мок-функции для репозиториев (просто логируют полученные данные)
-async def mock_institute_repo(institutes: List[InstituteCreate]) -> None:
-    logger.info(f"mock_institute_repo получил {len(institutes)} институтов")
-    for inst in institutes[:5]:
-        logger.info(f"  Институт: {inst.id} - {inst.name} ({inst.shortName})")
-
-
-async def mock_specialty_repo(
-    specialties: List[SpecialtyCreate], institute_id: int
-) -> None:
-    logger.info(
-        f"mock_specialty_repo для института {institute_id}: получил {len(specialties)} специальностей"
-    )
-    for spec in specialties[:5]:
-        logger.info(f"  Специальность: {spec.instituteId} - {spec.name}")
-
-
-async def mock_group_repo(groups: List[AcademicGroupCreate], specialty_id: int) -> None:
-    logger.info(
-        f"mock_group_repo для специальности {specialty_id}: получил {len(groups)} групп"
-    )
-    for group in groups[:5]:
-        logger.info(f"  Группа: {group.id} - {group.name}")
-
-
-async def mock_lesson_repo(lessons: List[LessonCreate]) -> None:
-    logger.info(f"mock_lesson_repo получил {len(lessons)} занятий")
-    for lesson in lessons[:5]:
-        logger.info(f"  Занятие: {lesson.discipline} {lesson.date}")
-
-
 async def main() -> None:
+
+    mock_institute_repo = InMemoryInstituteRepo()
+    mock_specialty_repo = InMemorySpecialtyRepo()
+    mock_group_repo = InMemoryAcademicGroupRepo()
+    mock_lesson_repo = InMemoryLessonRepo()
+    mock_teacher_repo = InMemoryTeacherRepo()
+    mock_room_repo = InMemoryRoomRepo()
+
     # Инициализация клиента и аутентификатора
     client = HttpClient(base_url=settings.university_base_url)
-    auth = auth_service.CookieFileAuthenticator(cookies_file="../cookies.json")
+    auth = auth_service.CookieFileAuthenticator(cookies_file="cookies.json")
 
     # Проверяем сессию
     if not await auth.ensure_session(client):
@@ -73,19 +60,25 @@ async def main() -> None:
         specialty_repo=mock_specialty_repo,
         group_repo=mock_group_repo,
         lesson_repo=mock_lesson_repo,
+        teacher_repo=mock_teacher_repo,
+        room_repo=mock_room_repo,
     )
 
     # Запускаем полный парсинг за короткий период (одна неделя)
-    start_date = date(2026, 2, 23)
-    end_date = date(2026, 3, 1)
+    start_date = date(2026, 3, 1)
+    end_date = date(2026, 3, 2)
 
     try:
         logger.info("Запуск полного парсинга с %s по %s", start_date, end_date)
-        await orchestrator.run_full_parse(start_date=start_date, end_date=end_date)
+        await orchestrator.run_full_parse(
+            start_date=start_date,
+            end_date=end_date,
+        )
     except Exception as e:
         logger.exception("Ошибка при выполнении парсинга")
     finally:
         await orchestrator.close()
+        print(mock_lesson_repo)
 
 
 if __name__ == "__main__":

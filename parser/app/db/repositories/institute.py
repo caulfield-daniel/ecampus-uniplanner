@@ -2,6 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.institute import Institute
 from app.schemas.institute import InstituteCreate
+from typing import List
 
 
 class InstituteRepository:
@@ -33,9 +34,9 @@ class InstituteRepository:
             self.session.add(db_institute)
             return db_institute
 
-    async def upsert_many(self, items: list[InstituteCreate]) -> list[Institute]:
+    async def upsert_many(self, items: List[InstituteCreate]) -> List[Institute]:
         """Пакетная вставка/обновление (простая реализация через цикл)."""
-        saved: list[Institute] = []
+        saved: List[Institute] = []
         for item in items:
             saved.append(await self.upsert(item))
         return saved

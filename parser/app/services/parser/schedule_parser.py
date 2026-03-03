@@ -1,14 +1,13 @@
-"""
-Парсер для получения расписания занятий через API.
-"""
-
 import logging
-from typing import List, Dict, Any, Optional
-from datetime import date
-from .base_parser import BaseParser
-from datetime import datetime
+from typing import List
+from datetime import date, datetime
 
+from .base_parser import BaseParser
 from app.schemas.lesson import LessonCreate
+from app.schemas.teacher import TeacherCreate
+from app.schemas.room import RoomCreate
+from app.db.repositories.teacher import TeacherRepository
+from app.db.repositories.room import RoomRepository
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +18,13 @@ class ScheduleParser(BaseParser):
     Возвращает список объектов LessonCreate.
     """
 
+    def __init__(
+        self, http_client, teacher_repo: TeacherRepository, room_repo: RoomRepository
+    ):
+        super().__init__(http_client)
+        self.teacher_repo = teacher_repo
+        self.room_repo = room_repo
+
     async def fetch_schedule(
         self,
         group_id: int,
@@ -27,14 +33,6 @@ class ScheduleParser(BaseParser):
     ) -> List[LessonCreate]:
         """
         Получает расписание для указанной группы на неделю, начинающуюся с target_date.
-
-        Args:
-            group_id: ID группы.
-            target_date: Дата понедельника недели.
-            target_type: Тип расписания (по умолчанию 2 - группа).
-
-        Returns:
-            Список объектов LessonCreate.
         """
         payload = {
             "date": target_date.isoformat(),
@@ -46,42 +44,90 @@ class ScheduleParser(BaseParser):
         )
         response = await self.http.post("/schedule/GetSchedule", data=payload)
         response.raise_for_status()
-        data = response.json()
+        data = response.json()  # ожидается список дней
 
         lessons: List[LessonCreate] = []
 
         for day in data:
-            # День может быть представлен строкой с датой в формате ISO (например, "2026-02-23T00:00:00")
-            day_date = datetime.fromisoformat(day["Date"]).date()
-            for les in day["Lessons"]:
+            # Проверка дня
+            day_date_str = day.get("Date")
+            weekday = day.get("WeekDay")
+            if not day_date_str or not weekday:
+                logger.warning("Пропущен день без даты или WeekDay: %s", day)
+                continue
+
+            try:
+                day_date = datetime.fromisoformat(day_date_str).date()
+            except (ValueError, TypeError):
+                logger.warning("Некорректный формат даты: %s", day_date_str)
+                continue
+
+            for les in day.get("Lessons", []):
+                lesson_id = les.get("Id")
+                if not lesson_id:
+                    logger.warning("Пропущено занятие без Id: %s", les)
+                    continue
+
+                # Обработка преподавателя
                 teacher_id = None
-                if les.get("Teacher"):
-                    teacher_id = les.get("Teacher").get("Id")
+                teacher_data = les.get("Teacher")
+                if teacher_data:
+                    tid = teacher_data.get("Id")
+                    tname = teacher_data.get("Name")
+                    if tid and tname:
+                        teacher_create = TeacherCreate(
+                            id=tid, name=" ".join(tname.split())
+                        )
+                        await self.teacher_repo.upsert(teacher_create)
+                        teacher_id = tid
 
+                # Обработка аудитории
                 room_id = None
-                if les.get("Aud"):
-                    room_id = les.get("Aud").get("Id")
+                room_data = les.get("Aud")
+                if room_data:
+                    rid = room_data.get("Id")
+                    rname = room_data.get("Name")
+                    if rid and rname:
+                        room_create = RoomCreate(id=rid, name=rname.strip())
+                        await self.room_repo.upsert(room_create)
+                        room_id = rid
 
+                # Подгруппа
                 subgroup = ""
                 groups = les.get("Groups") or []
                 if groups:
                     subgroup = groups[0].get("Subgroup", "")
 
-                # Время в формате ISO, например "2026-02-23T11:20:00"
-                time_begin = datetime.fromisoformat(les.get("TimeBegin")).time()
-                time_end = datetime.fromisoformat(les.get("TimeEnd")).time()
+                # Время
+                time_begin_str = les.get("TimeBegin")
+                time_end_str = les.get("TimeEnd")
+                if not time_begin_str or not time_end_str:
+                    logger.warning("Пропущено занятие %d без времени", lesson_id)
+                    continue
+                try:
+                    time_begin = datetime.fromisoformat(time_begin_str).time()
+                    time_end = datetime.fromisoformat(time_end_str).time()
+                except (ValueError, TypeError):
+                    logger.warning(
+                        "Некорректный формат времени для занятия %d", lesson_id
+                    )
+                    continue
 
-                lesson = LessonCreate(
-                    lesson_id=les["Id"],
-                    group_id=group_id,
+                # Строковые поля
+                discipline = les["Discipline"].strip()
+                lesson_type = les["LessonType"].strip()
+
+                lesson: LessonCreate = LessonCreate(
+                    lessonId=lesson_id,
+                    groupId=group_id,
                     date=day_date,
-                    weekday=day.get("WeekDay"),
-                    discipline=les.get("Discipline").strip(),
-                    lesson_type=les.get("LessonType").strip(),
-                    time_begin=time_begin,
-                    time_end=time_end,
-                    teacher_id=teacher_id,
-                    room_id=room_id,
+                    weekday=weekday,
+                    discipline=discipline,
+                    lessonType=lesson_type,
+                    timeBegin=time_begin,
+                    timeEnd=time_end,
+                    teacherId=teacher_id,
+                    roomId=room_id,
                     subgroup=subgroup,
                 )
                 lessons.append(lesson)

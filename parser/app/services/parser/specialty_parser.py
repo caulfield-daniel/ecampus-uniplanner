@@ -46,8 +46,7 @@ class SpecialtyParser(BaseParser):
         for item in data:
             specialties.append(
                 SpecialtyCreate(
-                    name=item.get("Name"),
-                    instituteId=institute_id,
+                    name=item.get("Name"), instituteId=institute_id, branchId=branch_id
                 )
             )
         logger.info("Получено %d специальностей", len(data))

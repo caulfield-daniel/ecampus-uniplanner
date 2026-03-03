@@ -12,9 +12,18 @@ from app.services.parser import (
 )
 
 from app.schemas.institute import InstituteCreate
-from app.schemas.specialty import SpecialtyCreate
+from app.schemas.specialty import SpecialtyCreate, SpecialtyInfo, Specialty
 from app.schemas.lesson import LessonCreate
 from app.schemas.academic_group import AcademicGroupCreate
+from app.schemas.teacher import TeacherCreate
+from app.schemas.room import RoomCreate
+
+from app.db.repositories.institute import InstituteRepository
+from app.db.repositories.specialty import SpecialtyRepository
+from app.db.repositories.academic_group import AcademicGroupRepository
+from app.db.repositories.lesson import LessonRepository
+from app.db.repositories.teacher import TeacherRepository
+from app.db.repositories.room import RoomRepository
 
 logger = logging.getLogger(__name__)
 
@@ -32,16 +41,12 @@ class ParserOrchestrator:
         self,
         http_client: HttpClient,
         authenticator: Authenticator,
-        institute_repo: Optional[
-            Callable[[List[InstituteCreate]], Awaitable[None]]
-        ] = None,
-        specialty_repo: Optional[
-            Callable[[List[SpecialtyCreate], int], Awaitable[None]]
-        ] = None,
-        group_repo: Optional[
-            Callable[[List[AcademicGroupCreate], int], Awaitable[None]]
-        ] = None,
-        lesson_repo: Optional[Callable[[List[LessonCreate]], Awaitable[None]]] = None,
+        institute_repo: InstituteRepository,
+        specialty_repo: SpecialtyRepository,
+        group_repo: AcademicGroupRepository,
+        lesson_repo: LessonRepository,
+        teacher_repo: TeacherRepository,
+        room_repo: RoomRepository,
     ):
         """
         Инициализация оркестратора.
@@ -65,7 +70,9 @@ class ParserOrchestrator:
         self._institute_parser = InstituteParser(self.http)
         self._specialty_parser = SpecialtyParser(self.http)
         self._group_parser = AcademicGroupParser(self.http)
-        self._schedule_parser = ScheduleParser(self.http)
+        self._schedule_parser = ScheduleParser(
+            self.http, teacher_repo=teacher_repo, room_repo=room_repo
+        )
 
     async def ensure_session(self) -> bool:
         """Проверяет и при необходимости обновляет сессию."""
@@ -85,20 +92,35 @@ class ParserOrchestrator:
             self._institute_parser.fetch_institutes, "институтов"
         )
         if self.institute_repo:
-            await self.institute_repo(institutes)
+            await self.institute_repo.upsert_many(institutes)
         logger.info("Получено и сохранено %d институтов", len(institutes))
 
         # 2. Для каждого института – специальности
-        all_specialties = []
+
+        all_specialties: List[SpecialtyInfo] = []
         for inst in institutes:
             try:
                 specialties = await self._specialty_parser.fetch_specialties(
                     inst.id,
                     inst.branchId,
                 )
+
                 if self.specialty_repo:
-                    await self.specialty_repo(specialties, inst.id)
-                all_specialties.extend(specialties)
+                    # Сохраняем специальности и получаем обновленные объекты с ID
+                    saved_orms = await self.specialty_repo.upsert_many(specialties)
+                    # Преобразуем ORM в SpecialtyInfo
+                    saved_infos = [
+                        SpecialtyInfo.model_validate(orm) for orm in saved_orms
+                    ]
+                    all_specialties.extend(saved_infos)
+                else:
+                    logger.warning(
+                        "Репозиторий специальностей не передан, специальности не будут сохранены"
+                    )
+                    # Если репозитория нет, мы не можем получить ID, поэтому не добавляем их в all_specialties
+                    # (иначе дальнейшие шаги с группами будут невозможны)
+                    continue
+
                 logger.debug(
                     "Для института %s получено %d специальностей",
                     inst.name,
@@ -117,7 +139,7 @@ class ParserOrchestrator:
             try:
                 groups = await self._group_parser.fetch_groups(spec)
                 if self.group_repo:
-                    await self.group_repo(groups, 0)  # 1 ДЛЯ ТЕСТИРОВАНИЯ
+                    await self.group_repo.upsert_many(groups, spec.id)
                 all_groups.extend(groups)
                 logger.debug(
                     "Для специальности %s получено %d групп",
@@ -143,7 +165,7 @@ class ParserOrchestrator:
                         group.id, monday
                     )
                     if self.lesson_repo:
-                        await self.lesson_repo(lessons)
+                        await self.lesson_repo.upsert_many(lessons)
                     logger.debug(
                         "Расписание для группы %s на %s получено",
                         group.name,
@@ -160,14 +182,16 @@ class ParserOrchestrator:
 
         logger.info("Полный парсинг завершён")
 
-    async def run_incremental_parse(self, groupIds: List[int], date_from: date) -> None:
+    async def run_incremental_parse(
+        self, groupIds: List[int], start_date: date, end_date: date = date.today()
+    ) -> None:
         """
         Инкрементальный парсинг – только для указанных групп, начиная с date_from.
         """
         if not await self.ensure_session():
             raise RuntimeError("Не удалось установить сессию. Парсинг прерван.")
 
-        mondays = self._mondays_between(date_from, date.today())  # или до сегодня
+        mondays = self._mondays_between(start_date, end_date)
         for groupId in groupIds:
             for monday in mondays:
                 try:
@@ -175,7 +199,7 @@ class ParserOrchestrator:
                         groupId, monday
                     )
                     if self.lesson_repo:
-                        await self.lesson_repo(lessons)
+                        await self.lesson_repo.upsert_many(lessons)
                     logger.info(
                         "Расписание для группы %d на %s обновлено", groupId, monday
                     )

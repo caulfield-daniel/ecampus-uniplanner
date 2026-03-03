@@ -12,5 +12,5 @@ class Specialty(Base):
     institute_id: Mapped[int] = mapped_column(
         ForeignKey("institutes.id"), nullable=False
     )
-    branch_id: Mapped[int] = mapped_column(nullable=False)
+    branch_id: Mapped[int] = mapped_column(nullable=False, default=1)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())

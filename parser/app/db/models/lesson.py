@@ -7,6 +7,7 @@ from app.db.base import Base
 
 
 class Lesson(Base):
+    
     __tablename__ = "lessons"
 
     # Внутренний первичный ключ (автоинкремент)
