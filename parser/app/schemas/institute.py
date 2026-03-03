@@ -10,7 +10,7 @@ class InstituteBase(BaseModel):
         ..., min_length=1, max_length=10, description="Краткое название"
     )
     name: str = Field(..., min_length=1, max_length=100, description="Полное название")
-    branchId: Optional[int] = Field(default=1, description="ID филиала")
+    branchId: int = Field(..., description="ID филиала")  # обязательное поле
 
 
 class InstituteCreate(InstituteBase):

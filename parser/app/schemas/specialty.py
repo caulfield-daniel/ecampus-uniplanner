@@ -18,7 +18,7 @@ class SpecialtyCreate(BaseModel):
 
     name: str = Field(..., min_length=1, max_length=100)
     instituteId: int = Field(..., gt=0)
-    branchId: Optional[int] = Field(default=1)
+    branchId: int = Field(..., gt=0)
 
 
 class SpecialtyUpdate(BaseModel):
