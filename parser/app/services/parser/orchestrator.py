@@ -10,6 +10,7 @@ from app.services.parser import (
     AcademicGroupParser,
     ScheduleParser,
 )
+from app.db.session import AsyncSession
 
 from app.schemas.institute import InstituteCreate
 from app.schemas.specialty import SpecialtyCreate, SpecialtyInfo, Specialty
@@ -39,6 +40,7 @@ class ParserOrchestrator:
 
     def __init__(
         self,
+        db_session: AsyncSession,
         http_client: HttpClient,
         authenticator: Authenticator,
         institute_repo: InstituteRepository,
@@ -54,12 +56,15 @@ class ParserOrchestrator:
         Args:
             http_client: HTTP-клиент для запросов.
             authenticator: аутентификатор для проверки/обновления сессии.
-            institute_repo: асинхронная функция сохранения институтов.
-            specialty_repo: асинхронная функция сохранения специальностей (принимает список и ID института).
-            group_repo: асинхронная функция сохранения групп (принимает список и ID специальности).
-            lesson_repo: асинхронная функция сохранения занятий.
+            institute_repo: репозиторий институтов.
+            specialty_repo: репозиторий специальностей.
+            group_repo: репозиторий групп.
+            lesson_repo: репозиторий занятий.
+            teacher_repo: репозиторий преподавателей.
+            room_repo: репозиторий аудиторий.
         """
         self.http = http_client
+        self.db_session = db_session
         self.auth = authenticator
         self.institute_repo = institute_repo
         self.specialty_repo = specialty_repo
@@ -93,6 +98,8 @@ class ParserOrchestrator:
         )
         if self.institute_repo:
             await self.institute_repo.upsert_many(institutes)
+            # Завершаем транзакцию
+            await self.db_session.commit()
         logger.info("Получено и сохранено %d институтов", len(institutes))
 
         # 2. Для каждого института – специальности
@@ -108,10 +115,15 @@ class ParserOrchestrator:
                 if self.specialty_repo:
                     # Сохраняем специальности и получаем обновленные объекты с ID
                     saved_orms = await self.specialty_repo.upsert_many(specialties)
+
+                    # Завершаем транзакцию
+                    await self.db_session.commit()
+
                     # Преобразуем ORM в SpecialtyInfo
                     saved_infos = [
                         SpecialtyInfo.model_validate(orm) for orm in saved_orms
                     ]
+
                     all_specialties.extend(saved_infos)
                 else:
                     logger.warning(
@@ -127,6 +139,8 @@ class ParserOrchestrator:
                     len(specialties),
                 )
             except Exception as e:
+                # Откатываем транзакцию
+                await self.db_session.rollback()
                 logger.exception(
                     "Ошибка при получении специальностей для института %s: %s",
                     inst.name,
@@ -140,6 +154,8 @@ class ParserOrchestrator:
                 groups = await self._group_parser.fetch_groups(spec)
                 if self.group_repo:
                     await self.group_repo.upsert_many(groups, spec.id)
+                    # Завершаем транзакцию
+                    await self.db_session.commit()
                 all_groups.extend(groups)
                 logger.debug(
                     "Для специальности %s получено %d групп",
@@ -147,6 +163,8 @@ class ParserOrchestrator:
                     len(groups),
                 )
             except Exception as e:
+                # Откатываем транзакцию
+                await self.db_session.rollback()
                 logger.exception(
                     "Ошибка при получении групп для специальности %s: %s",
                     spec.name,
@@ -166,12 +184,16 @@ class ParserOrchestrator:
                     )
                     if self.lesson_repo:
                         await self.lesson_repo.upsert_many(lessons)
+                        # Завершаем транзакцию
+                        await self.db_session.commit()
                     logger.debug(
                         "Расписание для группы %s на %s получено",
                         group.name,
                         monday,
                     )
                 except Exception as e:
+                    # Откатываем транзакцию
+                    await self.db_session.rollback()
                     logger.exception(
                         "Ошибка при получении расписания для группы %s на %s: %s",
                         group.name,
@@ -200,10 +222,14 @@ class ParserOrchestrator:
                     )
                     if self.lesson_repo:
                         await self.lesson_repo.upsert_many(lessons)
+                        # Завершаем транзакцию
+                        await self.db_session.commit()
                     logger.info(
                         "Расписание для группы %d на %s обновлено", groupId, monday
                     )
                 except Exception as e:
+                    # Откатываем транзакцию
+                    await self.db_session.rollback()
                     logger.exception(
                         "Ошибка при получении расписания для группы %d на %s: %s",
                         groupId,

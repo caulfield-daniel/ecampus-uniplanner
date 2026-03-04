@@ -15,3 +15,9 @@ class AcademicGroup(Base):
         ForeignKey("specialties.id"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    def __init__(self, id: int, name: str, edu_level: str, specialty_id: int) -> None:
+        self.id = id
+        self.name = name
+        self.edu_level = edu_level
+        self.specialty_id = specialty_id

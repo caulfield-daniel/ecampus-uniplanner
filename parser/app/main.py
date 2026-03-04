@@ -1,35 +1,73 @@
+import logging
+
 from fastapi import FastAPI
-from app.core import settings, setup_cors
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.api.endpoints import parser
+from app.core.config import settings
+
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from app.db.session import AsyncSessionLocal
+from app.db.repositories.parser import ParserStatusRepository
+from app.schemas.parser import ParserStatusEnum
 
 
-# Инициализация приложения
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # При старте: сбрасываем зависший статус
+    async with AsyncSessionLocal() as session:
+        repo = ParserStatusRepository(session)
+        status = await repo.get_status()
+        if status and status.status == ParserStatusEnum.running:
+            logger.warning(
+                "Устанавливаем статус парсинга в 'idle'"
+            )
+            status.status = ParserStatusEnum.idle
+            status.last_error = "Парсинг был прерван во время предыдущего запуска"
+            await session.commit()
+    yield
+    # При завершении ничего не делаем
+
+
 app = FastAPI(
     title=settings.app_title,
     version=settings.app_version,
     description=settings.app_description,
-    docs_url="/docs",  # Swagger UI
-    redoc_url="/redoc",  # ReDoc
-    openapi_url="/openapi.json",
+    lifespan=lifespan,  # подключаем lifespan
 )
 
 # Настройка CORS
-setup_cors(app)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-
-@app.get("/health")
-async def health_check():
-    """Эндпоинт для проверки работоспособности сервиса"""
-    return {
-        "status": "ok",
-        "service": "parser",
-        "version": settings.app_version,
-    }
+# Подключение роутеров
+app.include_router(parser.router, prefix="/api/v1")
 
 
 @app.get("/")
 async def root():
-    """Корневой эндпоинт"""
+    """Корневой эндпоинт для проверки работоспособности."""
     return {
-        "message": "Ecampus UniPlanner Parser API",
-        "docs": "/docs",
+        "service": "Ecampus UniPlanner Parser",
+        "version": settings.app_version,
+        "status": "running",
     }
+
+
+@app.get("/health")
+async def health_check():
+    """Проверка здоровья сервиса."""
+    return {"status": "healthy"}

@@ -7,7 +7,7 @@ from app.db.base import Base
 
 
 class Lesson(Base):
-    
+
     __tablename__ = "lessons"
 
     # Внутренний первичный ключ (автоинкремент)
@@ -31,3 +31,29 @@ class Lesson(Base):
 
     # Служебное поле
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    def __init__(
+        self,
+        lesson_id: int,
+        group_id: int,
+        date: date,
+        weekday: str,
+        discipline: str,
+        lesson_type: str,
+        time_begin: time | None,
+        time_end: time | None,
+        teacher_id: int | None,
+        room_id: int | None,
+        subgroup: str | None,
+    ):
+        self.lesson_id = lesson_id
+        self.group_id = group_id
+        self.date = date
+        self.weekday = weekday
+        self.discipline = discipline
+        self.lesson_type = lesson_type
+        self.time_begin = time_begin
+        self.time_end = time_end
+        self.teacher_id = teacher_id
+        self.room_id = room_id
+        self.subgroup = subgroup

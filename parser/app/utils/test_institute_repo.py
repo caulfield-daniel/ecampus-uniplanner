@@ -16,8 +16,8 @@ print("DB_NAME:", settings.db_name)
 async def test():
     # Создаём тестовые данные
     test_institute = InstituteCreate(
-        id=999999,  # используем заведомо уникальный ID
-        name="Тестовый институт",
+        id=999998,  # используем заведомо уникальный ID
+        name="Тестовый институт2",
         shortName="ТИ",
         branchId=1,
     )

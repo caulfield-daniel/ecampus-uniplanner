@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     port: int = 8000
     reload: bool = True
 
+    # === Аутентификация ===
+    cookies_file_path: str = "cookies.json"
+
     # === CORS ===
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 

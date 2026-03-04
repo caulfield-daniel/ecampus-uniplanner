@@ -27,10 +27,19 @@ class LessonRepository:
         else:
             # создаём новую запись, id сгенерируется автоматически
             db_lesson = Lesson(
-                id=create_data.lessonId,
                 weekday=create_data.weekday,
                 discipline=create_data.discipline,
+                lesson_id=create_data.lessonId,
+                group_id=create_data.groupId,
+                date=create_data.date,
+                lesson_type=create_data.lessonType,
+                time_begin=create_data.timeBegin,
+                time_end=create_data.timeEnd,
+                teacher_id=create_data.teacherId,
+                room_id=create_data.roomId,
+                subgroup=create_data.subgroup,
             )
+
             self.session.add(db_lesson)
             return db_lesson
 

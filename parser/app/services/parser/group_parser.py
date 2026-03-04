@@ -50,7 +50,7 @@ class AcademicGroupParser(BaseParser):
                 groups.append(
                     AcademicGroupCreate(
                         id=group_item.get("Id"),
-                        name=group_item.get("Name"),
+                        name=group_item.get("Name") or "Неизвестно",
                         eduLevel=group_item.get("EduLevel", edu_level),
                     )
                 )

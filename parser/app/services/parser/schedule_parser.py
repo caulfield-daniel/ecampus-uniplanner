@@ -79,6 +79,7 @@ class ScheduleParser(BaseParser):
                             id=tid, name=" ".join(tname.split())
                         )
                         await self.teacher_repo.upsert(teacher_create)
+                        
                         teacher_id = tid
 
                 # Обработка аудитории
