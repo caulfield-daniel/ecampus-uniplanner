@@ -78,17 +78,17 @@ tasks.register("buildJsProd") {
 tasks.register<Copy>("copyJsToWebDev") {
     dependsOn("buildJsDev")
     group = "kmp"
-    description = "Копирует development JS в web/src/shared/kmp"
+    description = "Копирует development JS в web/src/shared/kmp/dto"
 
     val sourceDir = layout.buildDirectory.dir("dist/js/developmentLibrary")
-    val targetDir = rootProject.layout.projectDirectory.dir("web/src/shared/kmp")
+    val targetDir = rootProject.layout.projectDirectory.dir("web/src/shared/kmp/dto")
 
     from(sourceDir) {
         include("shared.mjs", "shared.mjs.map", "shared.d.mts")
     }
     into(targetDir)
     doLast {
-        logger.lifecycle("✅ Development JS скопирован в web/src/shared/kmp")
+        logger.lifecycle("✅ Development JS скопирован в web/src/shared/kmp/dto")
     }
 }
 
@@ -98,22 +98,22 @@ tasks.register<Copy>("copyJsToWebProd") {
     description = "Копирует production JS в web/src/shared/kmp"
 
     val sourceDir = layout.buildDirectory.dir("dist/js/productionLibrary")
-    val targetDir = rootProject.layout.projectDirectory.dir("web/src/shared/kmp")
+    val targetDir = rootProject.layout.projectDirectory.dir("web/src/shared/kmp/dto")
 
     from(sourceDir) {
         include("shared.mjs", "shared.mjs.map", "shared.d.mts")
     }
     into(targetDir)
     doLast {
-        logger.lifecycle("✅ Production JS скопирован в web/src/shared/kmp")
+        logger.lifecycle("✅ Production JS скопирован в web/src/shared/kmp/dto")
     }
 }
 
 tasks.register<Delete>("cleanWebKmp") {
     group = "kmp"
-    description = "Удаляет сгенерированные shared-файлы из web/src/shared/kmp"
+    description = "Удаляет сгенерированные shared-файлы из web/src/shared/kmp/dto"
 
-    val targetDir = rootProject.layout.projectDirectory.dir("web/src/shared/kmp").asFile
+    val targetDir = rootProject.layout.projectDirectory.dir("web/src/shared/kmp/dto").asFile
     if (targetDir.exists()) {
         delete(fileTree(targetDir) {
             include("shared.mjs", "shared.mjs.map", "shared.d.mts")

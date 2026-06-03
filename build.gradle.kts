@@ -101,7 +101,7 @@ tasks.register("showTasks") {
         println("  showTasks        - Показать это сообщение")
         println("  tasks            - Показать все задачи Gradle")
         println("\n" + "=".repeat(60))
-        println("📁 Сгенерированные файлы: ./web/src/shared/kmp/shared.*")
+        println("📁 Сгенерированные файлы: ./web/src/shared/kmp/dto.*")
         println("=".repeat(60) + "\n")
     }
 }

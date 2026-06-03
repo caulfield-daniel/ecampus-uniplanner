@@ -1,5 +1,5 @@
 // ========== ТИПЫ (TypeScript декларации) ==========
-import type * as KmpTypes from './shared.d.mts';
+import type * as KmpTypes from './dto/shared.d.mts';
 
 // ========== ЭКСПОРТ ТИПОВ (с выравниванием пространства имён) ==========
 export type Lesson = KmpTypes.ru.uniplanner.shared.Lesson;
