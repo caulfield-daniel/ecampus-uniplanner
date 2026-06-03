@@ -18,26 +18,29 @@ kotlin {
         }
     }
 
-    js(KotlinJsCompilerType.IR) {
-        outputModuleName = "shared"
-        browser {
-            binaries.library()
-        }
-        generateTypeScriptDefinitions()
-        compilerOptions {
-            target = "es2015"
-        }
-    }
+    
+// Отказ от JS-бандлинга в пользу генерации typescript-типов из DTO
 
-    sourceSets {
-        commonMain.dependencies {
-            implementation(libs.kotlinx.serialization.json)
-        }
-        commonTest.dependencies {
-            implementation(libs.kotlin.test)
-        }
-    }
-}
+//     js(KotlinJsCompilerType.IR) {
+//         outputModuleName = "shared"
+//         browser {
+//             binaries.library()
+//         }
+//         generateTypeScriptDefinitions()
+//         compilerOptions {
+//             target = "es2015"
+//         }
+//     }
+
+//     sourceSets {
+//         commonMain.dependencies {
+//             implementation(libs.kotlinx.serialization.json)
+//         }
+//         commonTest.dependencies {
+//             implementation(libs.kotlin.test)
+//         }
+//     }
+// }
 
 buildConfig {
     useKotlinOutput {
