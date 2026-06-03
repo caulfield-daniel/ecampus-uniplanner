@@ -2,7 +2,7 @@ import { useState } from 'react';
 import reactLogo from './assets/react.svg';
 import './App.css';
 
-import { type Lesson } from '@/shared/kmp';
+import type { Lesson, Institute } from '@/shared/types';
 
 function App() {
   const [count, setCount] = useState(0);
