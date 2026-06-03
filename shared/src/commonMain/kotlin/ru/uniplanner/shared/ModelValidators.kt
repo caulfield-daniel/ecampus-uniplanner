@@ -7,7 +7,6 @@ import kotlin.js.JsExport
  * Вспомогательный класс для валидации моделей API в соответствии с ограничениями,
  * определёнными в спецификации OpenAPI.
  */
-@JsExport
 object ModelValidators {
 
     fun validateUser(user: User): ValidationResult {
@@ -318,10 +317,6 @@ object ModelValidators {
     }
 }
 
-/**
- * ИСПРАВЛЕНО: data class вместо sealed class для совместимости с @JsExport
- */
-@JsExport
 @Serializable
 data class ValidationResult(
     val isValid: Boolean,

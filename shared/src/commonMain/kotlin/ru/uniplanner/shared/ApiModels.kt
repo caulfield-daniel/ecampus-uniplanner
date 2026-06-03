@@ -8,7 +8,6 @@ import kotlin.js.JsExport
 // Общие модели
 // ============================================
 
-@JsExport
 @Serializable
 data class ErrorResponse(
     val code: Int,
@@ -28,7 +27,6 @@ data class User(
     val groupName: String
 )
 
-@JsExport
 @Serializable
 data class RegisterRequest(
     val email: String,
@@ -37,14 +35,12 @@ data class RegisterRequest(
     val groupName: String
 )
 
-@JsExport
 @Serializable
 data class LoginRequest(
     val email: String,
     val password: String
 )
 
-@JsExport
 @Serializable
 data class LoginResponse(
     val token: String,
@@ -174,7 +170,7 @@ data class Teacher(
 @Serializable
 data class Room(
     val id: Int,
-    val name: String  // maxLength: 50
+    val name: String
 )
 
 @JsExport
