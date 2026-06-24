@@ -1,62 +1,59 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { apiClient } from '../api/client';
-import type { TaskInputDto } from '../api/requestTypes';
-import type { Task } from '../shared/types';
+import { useState } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
+import { Button } from '@/shared/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/ui/dialog';
+import { TaskRow } from '@/entities/task/ui/TaskRow';
+import { TaskForm } from '@/features/task/task-form/TaskForm';
+import { useDeleteTaskMutation, useTasksQuery } from '@/entities/task/model/queries';
+import type { Task } from '@/shared/types';
 
 export function TasksPage() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const { data: tasks } = useTasksQuery();
+  const deleteMutation = useDeleteTaskMutation();
+  const [editingTask, setEditingTask] = useState<Task | undefined>();
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  function loadTasks() {
-    apiClient
-      .get<Task[]>('/tasks')
-      .then(setTasks)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Не удалось загрузить задачи'));
+  function openCreate() {
+    setEditingTask(undefined);
+    setDialogOpen(true);
   }
 
-  useEffect(() => {
-    loadTasks();
-  }, []);
-
-  async function toggleCompleted(task: Task) {
-    const input: TaskInputDto = {
-      title: task.title,
-      description: task.description ?? undefined,
-      deadline: task.deadline,
-      priority: task.priority,
-      completed: !task.completed,
-    };
-    await apiClient.put<Task>(`/tasks/${task.id}`, input);
-    loadTasks();
-  }
-
-  async function deleteTask(id: number) {
-    await apiClient.delete(`/tasks/${id}`);
-    loadTasks();
+  function openEdit(task: Task) {
+    setEditingTask(task);
+    setDialogOpen(true);
   }
 
   return (
-    <div>
-      <h2>Задачи</h2>
-      <Link to="/tasks/new">+ Новая задача</Link>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <ul>
-        {tasks.map((task) => (
-          <li key={task.id} style={{ marginBottom: '0.5rem' }}>
-            <input type="checkbox" checked={task.completed} onChange={() => toggleCompleted(task)} />
-            <span style={{ textDecoration: task.completed ? 'line-through' : 'none', marginLeft: '0.5rem' }}>
-              {task.title} — приоритет {task.priority}, до {new Date(task.deadline).toLocaleString()}
-            </span>
-            <Link to={`/tasks/${task.id}/edit`} state={{ task }} style={{ marginLeft: '0.5rem' }}>
-              Изменить
-            </Link>
-            <button onClick={() => deleteTask(task.id)} style={{ marginLeft: '0.5rem' }}>
-              Удалить
-            </button>
-          </li>
+    <>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight">Задачи</h1>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4" /> Новая задача
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingTask ? 'Редактирование задачи' : 'Новая задача'}</DialogTitle>
+            </DialogHeader>
+            <TaskForm task={editingTask} onSuccess={() => setDialogOpen(false)} />
+          </DialogContent>
+        </Dialog>
+      </div>
+      <div className="space-y-2">
+        {tasks?.map((task) => (
+          <div key={task.id} className="flex items-center gap-2">
+            <div className="flex-1">
+              <TaskRow task={task} onClick={() => openEdit(task)} />
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(task.id)}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         ))}
-      </ul>
-    </div>
+        {tasks?.length === 0 && <p className="text-sm text-muted-foreground">Задач пока нет</p>}
+      </div>
+    </>
   );
 }

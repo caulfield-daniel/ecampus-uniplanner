@@ -1,8 +1,8 @@
 // Хранит JWT (localStorage) и текущего пользователя; LoginRequest/RegisterRequest/LoginResponse
 // объявлены здесь локально, т.к. не экспортируются из shared KMP-модуля в JS (см. ApiModels.kt).
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { apiClient } from '../api/client';
-import type { User } from '../shared/types';
+import { apiClient } from '@/shared/api/httpClient';
+import type { User } from '@/shared/types';
 
 interface LoginRequest {
   email: string;
