@@ -7,4 +7,5 @@ import java.util.UUID
 interface INoteRepository : JpaRepository<NoteEntity, Long> {
     fun findByUserId(userId: UUID): List<NoteEntity>
     fun findByIdAndUserId(id: Long, userId: UUID): NoteEntity?
+    fun findByUserIdAndLessonId(userId: UUID, lessonId: Long): List<NoteEntity>
 }

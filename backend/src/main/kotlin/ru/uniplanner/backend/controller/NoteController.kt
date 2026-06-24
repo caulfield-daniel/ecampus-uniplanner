@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import ru.uniplanner.backend.security.currentUserId
 import ru.uniplanner.backend.service.INoteService
@@ -25,8 +26,10 @@ import ru.uniplanner.shared.requireValid
 class NoteController(private val noteService: INoteService) {
 
     @GetMapping
-    fun list(authentication: Authentication): List<Note> =
-        noteService.listForUser(authentication.currentUserId())
+    fun list(
+        authentication: Authentication,
+        @RequestParam(required = false) lessonId: Long?
+    ): List<Note> = noteService.listForUser(authentication.currentUserId(), lessonId)
 
     @PostMapping
     fun create(authentication: Authentication, @RequestBody input: NoteInput): ResponseEntity<Note> {

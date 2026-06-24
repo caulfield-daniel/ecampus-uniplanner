@@ -12,8 +12,14 @@ import java.util.UUID
 @Service
 class NoteServiceImpl(private val noteRepository: INoteRepository) : INoteService {
 
-    override fun listForUser(userId: UUID): List<Note> =
-        noteRepository.findByUserId(userId).map(NoteMapper::toDto)
+    override fun listForUser(userId: UUID, lessonId: Long?): List<Note> {
+        val entities = if (lessonId != null) {
+            noteRepository.findByUserIdAndLessonId(userId, lessonId)
+        } else {
+            noteRepository.findByUserId(userId)
+        }
+        return entities.map(NoteMapper::toDto)
+    }
 
     override fun create(userId: UUID, input: NoteInput): Note =
         NoteMapper.toDto(noteRepository.save(NoteMapper.toEntity(input, userId)))
@@ -22,6 +28,7 @@ class NoteServiceImpl(private val noteRepository: INoteRepository) : INoteServic
         val entity = noteRepository.findByIdAndUserId(noteId, userId)
             ?: throw NotFoundException("Заметка не найдена")
         entity.updateContent(input.title, input.content)
+        entity.lessonId = input.relatedLessonId?.toLong()
         return NoteMapper.toDto(noteRepository.save(entity))
     }
 

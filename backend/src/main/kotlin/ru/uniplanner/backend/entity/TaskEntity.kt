@@ -35,6 +35,9 @@ class TaskEntity(
     @Column(nullable = false)
     var completed: Boolean = false,
 
+    @Column(name = "lesson_id")
+    var lessonId: Long? = null,
+
     @Column(name = "created_at", nullable = false)
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
 

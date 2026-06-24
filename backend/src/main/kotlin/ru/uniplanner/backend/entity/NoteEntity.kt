@@ -26,6 +26,9 @@ class NoteEntity(
     @Column(nullable = false)
     var content: String,
 
+    @Column(name = "lesson_id")
+    var lessonId: Long? = null,
+
     @Column(name = "created_at", nullable = false)
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
 
