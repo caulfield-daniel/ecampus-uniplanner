@@ -8,6 +8,26 @@ class Settings(BaseSettings):
     Загружает значения из .env файла или переменных окружения.
     """
 
+    # === База данных ===
+
+    db_host: str = "localhost"
+    db_port: int = 5432
+    db_name: str = "uniplanner_parser"
+    db_user: str = "postgres"
+    db_password: str = "postgres"
+    db_pool_size: int = 20
+    db_max_overflow: int = 40
+
+    @property
+    def database_url(self) -> str:
+        """Формирует синхронный URL для Alembic"""
+        return f"postgresql://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
+
+    @property
+    def async_database_url(self) -> str:
+        """Асинхронный URL для SQLAlchemy"""
+        return f"postgresql+asyncpg://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -20,6 +40,9 @@ class Settings(BaseSettings):
     port: int = 8000
     reload: bool = True
 
+    # === Аутентификация ===
+    cookies_file_path: str = "cookies.json"
+
     # === CORS ===
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
@@ -29,7 +52,8 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.cors_origins.split(",")]
 
     # === Парсер ===
-    university_base_url: str = "https://ecampus.ncfu.ru/schedule"
+    university_base_url: str = "https://ecampus.ncfu.ru/"
+    university_schedule_url: str = university_base_url + "schedule/"
     request_timeout: int = 3
     retry_delay: int = 2
 

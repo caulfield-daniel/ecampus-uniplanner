@@ -8,7 +8,6 @@ import kotlin.js.JsExport
 // Общие модели
 // ============================================
 
-@JsExport
 @Serializable
 data class ErrorResponse(
     val code: Int,
@@ -28,7 +27,6 @@ data class User(
     val groupName: String
 )
 
-@JsExport
 @Serializable
 data class RegisterRequest(
     val email: String,
@@ -37,14 +35,12 @@ data class RegisterRequest(
     val groupName: String
 )
 
-@JsExport
 @Serializable
 data class LoginRequest(
     val email: String,
     val password: String
 )
 
-@JsExport
 @Serializable
 data class LoginResponse(
     val token: String,
@@ -64,7 +60,8 @@ data class Task(
     @SerialName("deadline")
     val deadline: String, // Формат даты и времени ISO 8601
     val priority: Int, // Приоритет от 1 до 5
-    val completed: Boolean
+    val completed: Boolean,
+    val relatedLessonId: Int? = null // привязка к занятию в расписании (опционально)
 )
 
 @JsExport
@@ -75,7 +72,8 @@ data class TaskInput(
     @SerialName("deadline")
     val deadline: String, // Формат даты и времени ISO 8601
     val priority: Int,
-    val completed: Boolean = false
+    val completed: Boolean = false,
+    val relatedLessonId: Int? = null
 )
 
 // ============================================
@@ -87,14 +85,16 @@ data class TaskInput(
 data class Note(
     val id: Int,
     val title: String,
-    val content: String
+    val content: String,
+    val relatedLessonId: Int? = null // привязка к занятию в расписании (опционально)
 )
 
 @JsExport
 @Serializable
 data class NoteInput(
     val title: String,
-    val content: String
+    val content: String,
+    val relatedLessonId: Int? = null
 )
 
 // ============================================
@@ -174,7 +174,7 @@ data class Teacher(
 @Serializable
 data class Room(
     val id: Int,
-    val name: String  // maxLength: 50
+    val name: String
 )
 
 @JsExport
@@ -192,4 +192,30 @@ data class ParserSyncRequest(
     val startDate: String?,    // format: date
     val endDate: String?,     // format: date
     val groups: List<String>? = null  // список групп для синхронизации
+)
+
+// ============================================
+// Модели личного входа пользователя в ecampus.ncfu.ru (через капчу)
+// ============================================
+
+@JsExport
+@Serializable
+data class CaptchaChallengeResponse(
+    val attemptId: String,
+    val captchaImageBase64: String
+)
+
+@Serializable
+data class UniversityLoginRequest(
+    val attemptId: String,
+    val login: String,
+    val password: String,
+    val captchaAnswer: String
+)
+
+@JsExport
+@Serializable
+data class UniversityLinkStatus(
+    val linked: Boolean,
+    val lastValidatedAt: String? = null
 )

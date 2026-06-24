@@ -25,4 +25,4 @@ dist-ssr
 
 .vite/
 
-web/src/shared/kmp/
+web/src/shared/kmp/dto

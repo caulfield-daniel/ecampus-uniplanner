@@ -16,6 +16,10 @@ object ApiConstants {
     const val ENDPOINT_NOTES = "/notes"
     const val ENDPOINT_SCHEDULE = "/schedule"
     const val ENDPOINT_GROUPS = "/groups"
+    const val ENDPOINT_UNIVERSITY_AUTH_CAPTCHA = "/university-auth/captcha"
+    const val ENDPOINT_UNIVERSITY_AUTH_LOGIN = "/university-auth/login"
+    const val ENDPOINT_UNIVERSITY_AUTH_STATUS = "/university-auth/status"
+    const val ENDPOINT_UNIVERSITY_AUTH_LINK = "/university-auth/link"
 
     // Эндпоинты парсера
     const val ENDPOINT_PARSER_STATUS = "/parser/status"

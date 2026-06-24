@@ -214,3 +214,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Сессионные данные для авторизации
+cookies.json
+
+alembic/versions
