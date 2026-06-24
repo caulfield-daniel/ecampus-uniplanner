@@ -1,1 +1,18 @@
-export type { Institute } from "@/shared/kmp";
+export type {
+  Lesson,
+  GroupInfo,
+  Task,
+  TaskInput,
+  Note,
+  NoteInput,
+  User,
+  ErrorResponse,
+  ValidationResult,
+  Institute,
+  Specialty,
+  AcademicGroup,
+  Teacher,
+  Room,
+  ParserStatusResponse,
+  ParserSyncRequest,
+} from '@shared/kmp/';
