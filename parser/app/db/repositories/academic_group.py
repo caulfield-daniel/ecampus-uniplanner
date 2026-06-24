@@ -48,3 +48,8 @@ class AcademicGroupRepository:
         stmt = select(AcademicGroup)
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
+
+    async def get_all_names(self) -> List[str]:
+        stmt = select(AcademicGroup.name).order_by(AcademicGroup.name)
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())

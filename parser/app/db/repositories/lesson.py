@@ -1,7 +1,12 @@
+from datetime import date
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.db.models.academic_group import AcademicGroup
 from app.db.models.lesson import Lesson
-from app.schemas.lesson import LessonCreate
+from app.db.models.room import Room
+from app.db.models.teacher import Teacher
+from app.schemas.lesson import Lesson as LessonSchema, LessonCreate
 from typing import List
 
 
@@ -48,3 +53,37 @@ class LessonRepository:
         for item in items:
             saved.append(await self.upsert(item))
         return saved
+
+    async def get_by_group_name_and_date_range(
+        self, group_name: str, date_from: date, date_to: date
+    ) -> List[LessonSchema]:
+        """
+        Возвращает занятия группы за период с уже подставленными именами
+        преподавателя/аудитории (для отдачи бэкенду через GET /parser/lessons).
+        """
+        stmt = (
+            select(
+                Lesson.id,
+                AcademicGroup.name.label("group"),
+                Lesson.date,
+                Lesson.weekday,
+                Lesson.discipline,
+                Lesson.lesson_type.label("type"),
+                Lesson.time_begin.label("timeStart"),
+                Lesson.time_end.label("timeEnd"),
+                Teacher.name.label("teacher"),
+                Room.name.label("room"),
+                Lesson.subgroup,
+            )
+            .join(AcademicGroup, Lesson.group_id == AcademicGroup.id)
+            .outerjoin(Teacher, Lesson.teacher_id == Teacher.id)
+            .outerjoin(Room, Lesson.room_id == Room.id)
+            .where(
+                AcademicGroup.name == group_name,
+                Lesson.date >= date_from,
+                Lesson.date <= date_to,
+            )
+            .order_by(Lesson.date, Lesson.time_begin)
+        )
+        result = await self.session.execute(stmt)
+        return [LessonSchema.model_validate(row) for row in result.mappings().all()]
