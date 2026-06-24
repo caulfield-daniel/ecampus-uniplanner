@@ -2,8 +2,10 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import date
 from app.schemas.parser import ParserStatusResponse, ParserSyncRequest, ParserStatusEnum
+from app.schemas.lesson import Lesson as LessonSchema
 from app.db.repositories.parser import ParserStatusRepository
 from app.db.repositories.academic_group import AcademicGroupRepository
+from app.db.repositories.lesson import LessonRepository
 from app.core.dependencies import get_db_session
 from app.services.parser.parser_runner import ParserRunner
 from typing import List
@@ -70,6 +72,30 @@ async def run_incremental_parse(
         request.endDate,
     )
     return {"message": "Инкрементальный парсинг запущен в фоне"}
+
+
+@router.get("/groups", response_model=List[str])
+async def list_groups(db: AsyncSession = Depends(get_db_session)):
+    """
+    Возвращает названия всех групп, накопленных parser'ом — для backend'а,
+    который тянет (pull) эти данные через ParserClient в свой кэш расписания.
+    """
+    group_repo = AcademicGroupRepository(db)
+    return await group_repo.get_all_names()
+
+
+@router.get("/lessons", response_model=List[LessonSchema])
+async def list_lessons(
+    group: str,
+    date_from: date,
+    date_to: date,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """
+    Возвращает занятия группы за период — для backend'а (см. list_groups).
+    """
+    lesson_repo = LessonRepository(db)
+    return await lesson_repo.get_by_group_name_and_date_range(group, date_from, date_to)
 
 
 @router.get("/status", response_model=ParserStatusResponse)
