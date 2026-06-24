@@ -11,6 +11,7 @@ from app.db.repositories.parser import ParserStatusRepository
 from app.services.parser.orchestrator import ParserOrchestrator
 from app.core.http_client import HttpClient
 from app.services.auth.cookie_file_auth import CookieFileAuthenticator
+from app.services.auth.no_auth import NoAuthAuthenticator
 from app.core.config import settings
 import logging
 
@@ -91,6 +92,11 @@ class ParserRunner:
     ) -> None:
         """
         Инкрементальный парсинг расписания для указанных групп за период.
+
+        Использует NoAuthAuthenticator, а не CookieFileAuthenticator: эндпоинт
+        расписания (/schedule/GetSchedule) отдаёт данные без авторизации — сервисный
+        аккаунт нужен только для будущих фич, требующих личного входа (оценки/статистика),
+        не для самого расписания. См. app/services/auth/no_auth.py.
         """
         # Устанавливаем статус "выполняется"
         async with AsyncSessionLocal() as session:
@@ -99,9 +105,9 @@ class ParserRunner:
             await session.commit()
 
         try:
-            # Создаём HTTP-клиент и аутентификатор
+            # Создаём HTTP-клиент и аутентификатор (без авторизации — см. докстринг выше)
             client = HttpClient(base_url=settings.university_base_url)
-            auth = CookieFileAuthenticator(cookies_file=settings.cookies_file_path)
+            auth = NoAuthAuthenticator()
 
             # Открываем сессию для репозиториев
             async with AsyncSessionLocal() as session:

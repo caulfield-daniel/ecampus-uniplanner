@@ -11,7 +11,7 @@ import java.time.LocalTime
 import java.time.OffsetDateTime
 
 // Entity-слой PCMEF: занятие в кэше расписания backend'а (заполняется через
-// ParserSyncServiceImpl из данных parser-микросервиса, см. docs/03-architecture/microservices.md).
+// ParserSyncServiceImpl из данных parser-микросервиса, см. docs/02-architecture/microservices.md).
 @Entity
 @Table(name = "cached_lessons")
 class CachedLessonEntity(

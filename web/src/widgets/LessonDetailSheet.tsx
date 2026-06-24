@@ -17,7 +17,7 @@ interface LessonDetailSheetProps {
 
 // Слайд-панель занятия: вкладки "Задачи"/"Заметки", отфильтрованные по lessonId
 // (backend-фильтр GET /tasks?lessonId=, см. ITaskService.listForLesson). Вкладки
-// "Файлы" нет — у backend нет file storage (см. docs/08-final/summary.md).
+// "Файлы" нет — у backend нет file storage (см. docs/10-final-report/summary.md).
 export function LessonDetailSheet({ lesson, onClose }: LessonDetailSheetProps) {
   const [addingTask, setAddingTask] = useState(false);
   const [addingNote, setAddingNote] = useState(false);

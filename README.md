@@ -4,7 +4,7 @@
 
 ## Траектория курсового проекта
 
-Курсовой проект защищается по **траектории Б («Веб-ориентированная»)** методички дисциплины «Программная инженерия»: тонкий клиент (React), серверная часть на Spring Boot, REST API, PostgreSQL. Архитектурный паттерн — **PCMEF** (Presentation-Control-Mediator-Entity-Foundation), адаптированный под Kotlin/Spring (см. `docs/03-architecture/pcmef-mapping.md`).
+Курсовой проект защищается по **траектории Б («Веб-ориентированная»)** методички дисциплины «Программная инженерия»: тонкий клиент (React), серверная часть на Spring Boot, REST API, PostgreSQL. Архитектурный паттерн — **PCMEF** (Presentation-Control-Mediator-Entity-Foundation), адаптированный под Kotlin/Spring (см. `docs/02-architecture/pcmef-diagram.md`).
 
 KMP shared-модуль и заготовка Android-клиента — архитектурный запас на будущее (мобильный клиент), не входят в обязательные требования трактории Б и реализуются по остаточному принципу, если хватит времени.
 
@@ -53,13 +53,33 @@ ecampus-uniplanner/
 └── README.md                 # Этот файл
 ```
 
+## Документация по этапам
+
+```
+docs/
+├── 00-project-charter/   # Паспорт проекта, глоссарий, стейкхолдеры
+├── 01-requirements/      # Доменная модель, Use Case, трассировка требований
+├── 02-architecture/      # PCMEF, выделение микросервиса-парсера, ADR
+├── 03-database/          # ER-диаграмма, миграции, ограничения целостности
+├── 04-detailed-design/   # Диаграмма классов, REST API, диаграммы последовательности
+├── 05-implementation/    # Структура кода backend, найденные и исправленные баги
+├── 06-testing/           # Стратегия тестирования, покрытие
+├── 07-ui/                # FSD-архитектура фронтенда, описание экранов
+├── 08-deployment/        # Развёртывание (Docker Compose), переменные окружения
+├── 09-user-guide/        # Руководство пользователя
+├── 10-final-report/      # Итоги проекта, осознанные упрощения
+└── HANDOFF.md            # Заметка для продолжения работы в чате (не часть отчёта)
+```
+
+Каждый этап содержит свой `README.md` с обзором и списком артефактов — начать стоит с [docs/00-project-charter/README.md](docs/00-project-charter/README.md).
+
 ## Разработка
 
 - Все модели данных находятся в `shared/src/commonMain/kotlin/ru/uniplanner/shared/`.
 - Для добавления новой модели:
   1. Создайте data-класс с аннотациями `@Serializable` и `@JsExport`.
-  2. Выполните `./gradlew :shared:buildJsDevAndCopy`.
-  3. Импортируйте типы в React: `import type { Model } from './shared/kmp/shared.dev.d.ts'`.
+  2. Выполните `./gradlew :shared:rebuildJsDev` (пересобирает и копирует JS/d.mts в `web/src/shared/kmp/dto/`).
+  3. Импортируйте типы в React через мост `web/src/shared/kmp/index.ts` (см. [docs/05-implementation/code-structure.md](docs/05-implementation/code-structure.md) про известные шероховатости генерации `.d.mts`).
 - Backend требует JDK 21. Если в `PATH`/`JAVA_HOME` стоит другая версия Java, передайте `JAVA_HOME` явно при вызове Gradle (например, `$env:JAVA_HOME = 'C:\Program Files\Eclipse Adoptium\jdk-21.0.8.9-hotspot'` в PowerShell перед `./gradlew`). В Docker-сборке (`backend/Dockerfile`) JDK 21 уже корректный по умолчанию.
 
 ## Статистика разработки

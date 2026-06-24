@@ -1,6 +1,7 @@
 import { Checkbox } from '@/shared/ui/checkbox';
 import { cn } from '@/shared/lib/utils';
-import type { Task } from '@/shared/types';
+import type { Lesson, Task } from '@/shared/types';
+import { LessonTag } from '@/entities/lesson/ui/LessonTag';
 import { useToggleTaskMutation } from '../model/queries';
 
 function deadlineUrgency(deadline: string, completed: boolean): 'urgent' | 'soon' | 'normal' {
@@ -13,10 +14,11 @@ function deadlineUrgency(deadline: string, completed: boolean): 'urgent' | 'soon
 
 interface TaskRowProps {
   task: Task;
+  lesson?: Lesson;
   onClick?: () => void;
 }
 
-export function TaskRow({ task, onClick }: TaskRowProps) {
+export function TaskRow({ task, lesson, onClick }: TaskRowProps) {
   const toggle = useToggleTaskMutation();
   const urgency = deadlineUrgency(task.deadline, task.completed);
 
@@ -47,6 +49,7 @@ export function TaskRow({ task, onClick }: TaskRowProps) {
               minute: '2-digit',
             })}
           </span>
+          {lesson && <LessonTag lesson={lesson} />}
         </div>
       </div>
     </div>

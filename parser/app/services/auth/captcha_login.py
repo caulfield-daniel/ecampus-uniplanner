@@ -38,7 +38,7 @@ class CaptchaLoginFlow:
 
     Состояние попытки логина (cookie-jar между запросом капчи и отправкой формы)
     хранится только in-memory в InMemoryAttemptStore с TTL — parser не персистит
-    ничего о пользователях приложения в своей БД (см. docs/03-architecture/microservices.md).
+    ничего о пользователях приложения в своей БД (см. docs/02-architecture/microservices.md).
     """
 
     def __init__(self, store: InMemoryAttemptStore = attempt_store):

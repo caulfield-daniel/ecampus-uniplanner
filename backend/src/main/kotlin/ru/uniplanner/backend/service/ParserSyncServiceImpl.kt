@@ -1,6 +1,7 @@
 package ru.uniplanner.backend.service
 
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import ru.uniplanner.backend.entity.CachedLessonEntity
 import ru.uniplanner.backend.foundation.ParserClient
 import ru.uniplanner.backend.foundation.ParserLessonDto
@@ -13,6 +14,14 @@ class ParserSyncServiceImpl(
     private val cachedLessonRepository: ICachedLessonRepository
 ) : IParserSyncService {
 
+    // @Transactional обязателен: deleteByGroupNameAndLessonDateBetween — производный
+    // delete-запрос Spring Data, Hibernate удаляет сущности по одной через
+    // entityManager.remove(), что требует активной транзакции (в отличие от bulk
+    // @Modifying-запроса). Без @Transactional повторный sync уже синхронизированной
+    // группы (есть что удалять) падал с "No EntityManager with actual transaction
+    // available" — первый sync (только insert, нечего удалять) проходил незаметно,
+    // маскируя баг.
+    @Transactional
     override fun syncGroupSchedule(group: String, from: LocalDate, to: LocalDate): Int {
         val lessons = parserClient.fetchLessons(group, from, to).block() ?: emptyList()
 

@@ -25,3 +25,4 @@
 
 - `User 1—N Task`, `User 1—N Note` — через `user_id` (FK на `users.id`).
 - `CachedLesson` не имеет FK на `User`, связь по `group_name` (denormalized — кэш для скорости чтения расписания).
+- `CachedLesson 1—N Task`, `CachedLesson 1—N Note` — через необязательный `lesson_id` (`ON DELETE SET NULL`), см. [03-database/er-diagram.md](../03-database/er-diagram.md). Позволяет привязать задачу/заметку к конкретному занятию (UC-06 в [use-case-specifications.md](use-case-specifications.md)).

@@ -9,7 +9,7 @@ import java.time.LocalDate
 
 /**
  * Ручная синхронизация кэша расписания backend'а с данными, уже накопленными
- * parser-микросервисом (см. docs/03-architecture/microservices.md). Без cron —
+ * parser-микросервисом (см. docs/02-architecture/microservices.md). Без cron —
  * вызывается администратором по необходимости (раз в неделю/месяц).
  */
 @RestController

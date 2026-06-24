@@ -22,7 +22,7 @@ class InMemoryAttemptStore:
     Хранилище незавершённых попыток личного логина пользователей в ecampus.
 
     Намеренно in-memory и не персистится в БД parser'а: parser не хранит
-    ничего о пользователях приложения (см. docs/03-architecture/microservices.md),
+    ничего о пользователях приложения (см. docs/02-architecture/microservices.md),
     привязка user_id <-> сессия живёт в backend. Здесь хранится только
     cookie-jar самой попытки логина между шагом "запрос капчи" и шагом
     "завершение логина", с TTL.

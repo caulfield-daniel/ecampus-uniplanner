@@ -24,7 +24,7 @@ data class ParserLessonDto(
 /**
  * Foundation-клиент к публичным справочникам parser-микросервиса (сервисный
  * аккаунт скрейпинга расписания групп). Backend САМ забирает (pull) данные,
- * которые parser уже накопил у себя — не наоборот (см. docs/03-architecture/microservices.md).
+ * которые parser уже накопил у себя — не наоборот (см. docs/02-architecture/microservices.md).
  */
 @Component
 class ParserClient(

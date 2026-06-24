@@ -32,6 +32,10 @@ dependencies {
     implementation(libs.jackson.module.kotlin)
     implementation(libs.kotlin.reflect)
     implementation(libs.kotlinx.coroutines.reactor)
+    // Явно фиксируем версию, иначе Spring Dependency Management понижает её до 1.6.3 через свой BOM,
+    // что несовместимо с сериализаторами, сгенерированными плагином Kotlin 2.3.0 в shared-модуле
+    // (AbstractMethodError: GeneratedSerializer.typeParametersSerializers на /auth/login)
+    implementation(libs.kotlinx.serialization.json)
 
     // Database
     implementation(libs.flyway.core)
@@ -53,6 +57,17 @@ dependencies {
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.spring.security.test)
     testImplementation(libs.mockk)
+}
+
+// Spring Dependency Management подключает kotlinx-serialization-bom:1.6.3 и понижает версию
+// даже для явно объявленных implementation(...) — переопределяем здесь до версии из каталога.
+dependencyManagement {
+    dependencies {
+        dependency("org.jetbrains.kotlinx:kotlinx-serialization-core:${libs.versions.kotlinxSerialization.get()}")
+        dependency("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:${libs.versions.kotlinxSerialization.get()}")
+        dependency("org.jetbrains.kotlinx:kotlinx-serialization-json:${libs.versions.kotlinxSerialization.get()}")
+        dependency("org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:${libs.versions.kotlinxSerialization.get()}")
+    }
 }
 
 // Новый синтаксис для Kotlin 2.x
