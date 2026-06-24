@@ -53,3 +53,10 @@ web/src/shared/kmp/
 **/buildConfig/
 
 /kotlin-js-store
+
+backend/.env
+backend/.env.local
+backend/.env.*.local
+
+# Amplicode IDE plugin (локальные метаданные)
+amplicode.xml

@@ -4,9 +4,10 @@ plugins {
     alias(libs.plugins.kotlinJpa)
     alias(libs.plugins.springBoot)
     alias(libs.plugins.springDependencyManagement)
+    jacoco
 }
 
-group = "com.example"
+group = "ru.uniplanner"
 version = "1.0.0"
 
 java {
@@ -51,6 +52,7 @@ dependencies {
     // Testing
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.spring.security.test)
+    testImplementation(libs.mockk)
 }
 
 // Новый синтаксис для Kotlin 2.x
@@ -63,6 +65,15 @@ kotlin {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
+    }
 }
 
 // Плагин kotlin-jpa автоматически настраивает allOpen для @Entity
