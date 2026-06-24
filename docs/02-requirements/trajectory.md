@@ -12,10 +12,10 @@
 
 | Требование методички | Статус | Где реализовано |
 |---|---|---|
-| Web UI 5+ страниц | ✅ | `web/src/pages/` — Login, Tasks, TaskForm, Notes, Schedule |
-| Адаптивная вёрстка | ⏳ | базовая, без media query — доработать при наличии времени |
+| Web UI 5+ страниц | ✅ | `web/src/pages/` — Login, Today, Schedule, Tasks, Notes (+ слайд-панель занятия) |
+| Адаптивная вёрстка | ⏳ | desktop-first на Tailwind, мобильная адаптация не сделана — доработать при наличии времени |
 | Аутентификация и авторизация (роли) | ✅ | JWT, роли `ROLE_USER`/`ROLE_ADMIN`/`ROLE_MANAGER` (`docs/03-architecture/pcmef-mapping.md`) |
-| REST API | ✅ | 13 эндпоинтов (см. `docs/05-design/api-design.md`), что превышает обязательный минимум (8) |
+| REST API | ✅ | 15 эндпоинтов (см. `docs/05-design/api-design.md`), что превышает обязательный минимум (8) |
 | Модульное тестирование (JUnit, >40%) | ✅ | `backend/src/test/kotlin/.../service/*Test.kt`, JaCoCo |
 | Развёртывание (сервлет-контейнер) | ✅ | Spring Boot embedded Tomcat, эквивалент требования методички |
 
@@ -23,3 +23,4 @@
 
 - KMP shared-модуль с единой моделью данных для JVM и JS — задел под нативный мобильный клиент без переписывания DTO.
 - Docker Compose для локального/демо-развёртывания backend + PostgreSQL (бонус трактории Б, +3-5%).
+- Фронтенд на FSD-архитектуре (Feature-Sliced Design) + TanStack Query + shadcn/ui/Tailwind — современный стек сверх минимальных требований методички, см. `docs/07-ui/screens.md`.
