@@ -1,0 +1,18 @@
+export type {
+  Lesson,
+  GroupInfo,
+  Task,
+  TaskInput,
+  Note,
+  NoteInput,
+  User,
+  ErrorResponse,
+  ValidationResult,
+  Institute,
+  Specialty,
+  AcademicGroup,
+  Teacher,
+  Room,
+  ParserStatusResponse,
+  ParserSyncRequest,
+} from './dto/shared.d.mts';

@@ -1,0 +1,63 @@
+# ============================================
+# ОБЩИЕ СХЕМЫ (используются везде)
+# ============================================
+
+ErrorResponse:
+  type: object
+  description: "Стандартный формат ошибки API"
+  properties:
+    code:
+      type: integer
+      description: "HTTP код ошибки"
+    message:
+      type: string
+      description: "Человекочитаемое описание ошибки"
+  required: [code, message]
+
+# Переиспользуемые параметры
+GroupIdParam:
+  name: group
+  in: query
+  required: true
+  schema:
+    type: string
+  description: "Название группы (например, 'ИТ-201')"
+
+DateQueryParam:
+  name: date
+  in: query
+  required: false
+  schema:
+    type: string
+    format: date
+  description: "Дата для фильтрации (YYYY-MM-DD)"
+
+IdPathParameter:
+  name: id
+  in: path
+  required: true
+  schema:
+    type: integer
+  description: "Уникальный идентификатор ресурса"
+
+# Переиспользуемые ответы
+UnauthorizedResponse:
+  description: "Не авторизован"
+  content:
+    application/json:
+      schema:
+        $ref: '#/ErrorResponse'
+
+NotFoundResponse:
+  description: "Ресурс не найден"
+  content:
+    application/json:
+      schema:
+        $ref: '#/ErrorResponse'
+
+BadRequestResponse:
+  description: "Ошибка валидации"
+  content:
+    application/json:
+      schema:
+        $ref: '#/ErrorResponse'
