@@ -189,3 +189,29 @@ data class ParserSyncRequest(
     val endDate: String?,     // format: date
     val groups: List<String>? = null  // список групп для синхронизации
 )
+
+// ============================================
+// Модели личного входа пользователя в ecampus.ncfu.ru (через капчу)
+// ============================================
+
+@JsExport
+@Serializable
+data class CaptchaChallengeResponse(
+    val attemptId: String,
+    val captchaImageBase64: String
+)
+
+@Serializable
+data class UniversityLoginRequest(
+    val attemptId: String,
+    val login: String,
+    val password: String,
+    val captchaAnswer: String
+)
+
+@JsExport
+@Serializable
+data class UniversityLinkStatus(
+    val linked: Boolean,
+    val lastValidatedAt: String? = null
+)
