@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import ru.uniplanner.backend.security.currentUserId
 import ru.uniplanner.backend.service.ITaskService
@@ -25,8 +26,10 @@ import ru.uniplanner.shared.requireValid
 class TaskController(private val taskService: ITaskService) {
 
     @GetMapping
-    fun list(authentication: Authentication): List<Task> =
-        taskService.listForUser(authentication.currentUserId())
+    fun list(
+        authentication: Authentication,
+        @RequestParam(required = false) lessonId: Long?
+    ): List<Task> = taskService.listForUser(authentication.currentUserId(), lessonId)
 
     @PostMapping
     fun create(authentication: Authentication, @RequestBody input: TaskInput): ResponseEntity<Task> {

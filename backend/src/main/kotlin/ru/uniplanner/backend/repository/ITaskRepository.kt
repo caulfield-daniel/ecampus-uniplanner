@@ -7,4 +7,5 @@ import java.util.UUID
 interface ITaskRepository : JpaRepository<TaskEntity, Long> {
     fun findByUserId(userId: UUID): List<TaskEntity>
     fun findByIdAndUserId(id: Long, userId: UUID): TaskEntity?
+    fun findByUserIdAndLessonId(userId: UUID, lessonId: Long): List<TaskEntity>
 }

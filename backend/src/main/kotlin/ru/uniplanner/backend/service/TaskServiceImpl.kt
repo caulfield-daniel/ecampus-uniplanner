@@ -13,8 +13,14 @@ import java.util.UUID
 @Service
 class TaskServiceImpl(private val taskRepository: ITaskRepository) : ITaskService {
 
-    override fun listForUser(userId: UUID): List<Task> =
-        taskRepository.findByUserId(userId).map(TaskMapper::toDto)
+    override fun listForUser(userId: UUID, lessonId: Long?): List<Task> {
+        val entities = if (lessonId != null) {
+            taskRepository.findByUserIdAndLessonId(userId, lessonId)
+        } else {
+            taskRepository.findByUserId(userId)
+        }
+        return entities.map(TaskMapper::toDto)
+    }
 
     override fun create(userId: UUID, input: TaskInput): Task =
         TaskMapper.toDto(taskRepository.save(TaskMapper.toEntity(input, userId)))
@@ -26,6 +32,7 @@ class TaskServiceImpl(private val taskRepository: ITaskRepository) : ITaskServic
         entity.description = input.description
         entity.reschedule(OffsetDateTime.parse(input.deadline))
         entity.priority = input.priority
+        entity.lessonId = input.relatedLessonId?.toLong()
         if (input.completed) entity.markCompleted() else entity.completed = false
         return TaskMapper.toDto(taskRepository.save(entity))
     }
