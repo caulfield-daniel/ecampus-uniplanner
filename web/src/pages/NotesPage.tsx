@@ -1,89 +1,59 @@
-import { useEffect, useState } from 'react';
-import { apiClient } from '../api/client';
-import type { NoteInputDto } from '../api/requestTypes';
-import type { Note } from '../shared/types';
+import { useState } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
+import { Button } from '@/shared/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/ui/dialog';
+import { NoteCard } from '@/entities/note/ui/NoteCard';
+import { NoteForm } from '@/features/note/note-form/NoteForm';
+import { useDeleteNoteMutation, useNotesQuery } from '@/entities/note/model/queries';
+import type { Note } from '@/shared/types';
 
 export function NotesPage() {
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { data: notes } = useNotesQuery();
+  const deleteMutation = useDeleteNoteMutation();
+  const [editingNote, setEditingNote] = useState<Note | undefined>();
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  function loadNotes() {
-    apiClient
-      .get<Note[]>('/notes')
-      .then(setNotes)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Не удалось загрузить заметки'));
+  function openCreate() {
+    setEditingNote(undefined);
+    setDialogOpen(true);
   }
 
-  useEffect(() => {
-    loadNotes();
-  }, []);
-
-  function startEdit(note: Note) {
-    setEditingId(note.id);
-    setTitle(note.title);
-    setContent(note.content);
-  }
-
-  function resetForm() {
-    setEditingId(null);
-    setTitle('');
-    setContent('');
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    const input: NoteInputDto = { title, content };
-    try {
-      if (editingId) {
-        await apiClient.put(`/notes/${editingId}`, input);
-      } else {
-        await apiClient.post('/notes', input);
-      }
-      resetForm();
-      loadNotes();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Не удалось сохранить заметку');
-    }
-  }
-
-  async function deleteNote(id: number) {
-    await apiClient.delete(`/notes/${id}`);
-    loadNotes();
+  function openEdit(note: Note) {
+    setEditingNote(note);
+    setDialogOpen(true);
   }
 
   return (
-    <div>
-      <h2>Заметки</h2>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxWidth: 400 }}>
-        <input placeholder="Заголовок" value={title} onChange={(e) => setTitle(e.target.value)} required />
-        <textarea placeholder="Текст" value={content} onChange={(e) => setContent(e.target.value)} required />
-        {error && <p style={{ color: 'red' }}>{error}</p>}
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button type="submit">{editingId ? 'Сохранить' : 'Добавить'}</button>
-          {editingId && (
-            <button type="button" onClick={resetForm}>
-              Отмена
-            </button>
-          )}
-        </div>
-      </form>
-      <ul>
-        {notes.map((note) => (
-          <li key={note.id} style={{ marginBottom: '0.5rem' }}>
-            <strong>{note.title}</strong>: {note.content}
-            <button onClick={() => startEdit(note)} style={{ marginLeft: '0.5rem' }}>
-              Изменить
-            </button>
-            <button onClick={() => deleteNote(note.id)} style={{ marginLeft: '0.5rem' }}>
-              Удалить
-            </button>
-          </li>
+    <>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight">Заметки</h1>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4" /> Новая заметка
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingNote ? 'Редактирование заметки' : 'Новая заметка'}</DialogTitle>
+            </DialogHeader>
+            <NoteForm note={editingNote} onSuccess={() => setDialogOpen(false)} />
+          </DialogContent>
+        </Dialog>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {notes?.map((note) => (
+          <div key={note.id} className="flex items-start gap-2">
+            <div className="flex-1">
+              <NoteCard note={note} onClick={() => openEdit(note)} />
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(note.id)}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         ))}
-      </ul>
-    </div>
+        {notes?.length === 0 && <p className="text-sm text-muted-foreground">Заметок пока нет</p>}
+      </div>
+    </>
   );
 }
