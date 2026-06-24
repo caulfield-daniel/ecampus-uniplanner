@@ -42,9 +42,9 @@ export function Sidebar() {
     <aside className="fixed flex h-screen w-64 flex-col overflow-y-auto border-r border-border bg-card p-4">
       <div className="mb-8 flex items-center gap-2 px-2 text-lg font-bold tracking-tight">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-sm text-primary-foreground">
-          SH
+          U
         </div>
-        Student Hub
+        UniPlanner
       </div>
 
       <nav className="mb-6 space-y-1">
