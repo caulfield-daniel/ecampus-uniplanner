@@ -78,7 +78,12 @@ describe('useLoginMutation', () => {
     result.current.mutate({ email: 'test@example.com', password: 'secret' });
 
     await waitFor(() => expect(tokenStorage.set).toHaveBeenCalledWith('jwt-token'));
-    expect(userApi.login).toHaveBeenCalledWith({ email: 'test@example.com', password: 'secret' });
+    // react-query v5 передаёт mutationFn второй аргумент — объект контекста
+    // { client, meta, mutationKey }, поэтому проверяем его через expect.anything().
+    expect(userApi.login).toHaveBeenCalledWith(
+      { email: 'test@example.com', password: 'secret' },
+      expect.anything(),
+    );
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: userKeys.me });
   });
 });
