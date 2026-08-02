@@ -1,30 +1,24 @@
 import { Checkbox } from '@/shared/ui/checkbox';
 import { cn } from '@/shared/lib/utils';
 import type { Task } from '@/shared/types';
-import { useToggleTaskMutation } from '../model/queries';
+import { deadlineUrgency } from '../model/deadline';
 
-function deadlineUrgency(deadline: string, completed: boolean): 'urgent' | 'soon' | 'normal' {
-  if (completed) return 'normal';
-  const diffHours = (new Date(deadline).getTime() - Date.now()) / 3_600_000;
-  if (diffHours < 24) return 'urgent';
-  if (diffHours < 72) return 'soon';
-  return 'normal';
-}
-
+// Презентационный компонент: без запросов и мутаций. Переключение выполнения
+// (onToggle) и переход к редактированию (onClick) — ответственность владельца списка.
 interface TaskRowProps {
   task: Task;
+  onToggle: (task: Task) => void;
   onClick?: () => void;
 }
 
-export function TaskRow({ task, onClick }: TaskRowProps) {
-  const toggle = useToggleTaskMutation();
+export function TaskRow({ task, onToggle, onClick }: TaskRowProps) {
   const urgency = deadlineUrgency(task.deadline, task.completed);
 
   return (
     <div className="flex items-start gap-3 rounded-md border border-border p-3 transition-colors hover:bg-accent">
       <Checkbox
         checked={task.completed}
-        onCheckedChange={() => toggle.mutate(task)}
+        onCheckedChange={() => onToggle(task)}
         onClick={(e) => e.stopPropagation()}
         className="mt-0.5"
       />
