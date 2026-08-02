@@ -24,4 +24,7 @@ function Badge({ className, variant, ...props }: BadgeProps) {
   return <span className={cn(badgeVariants({ variant, className }))} {...props} />;
 }
 
+// badgeVariants — константа cva (не компонент): экспорт рядом с компонентом
+// для переиспользования стилей бейджей в других местах.
+// eslint-disable-next-line react-refresh/only-export-components
 export { Badge, badgeVariants };

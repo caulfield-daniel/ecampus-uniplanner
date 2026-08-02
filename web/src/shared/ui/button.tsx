@@ -34,4 +34,7 @@ function Button({ className, variant, size, asChild = false, ...props }: ButtonP
   return <Comp className={cn(buttonVariants({ variant, size, className }))} {...props} />;
 }
 
+// buttonVariants — константа cva (не компонент): экспорт рядом с компонентом
+// требуется для переиспользования стилей (alert-dialog и др. компоненты).
+// eslint-disable-next-line react-refresh/only-export-components
 export { Button, buttonVariants };

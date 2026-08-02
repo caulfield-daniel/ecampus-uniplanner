@@ -43,6 +43,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
 }
 
 // Доступ к контексту: возвращает { user, token, loading, logout }.
+// react-refresh: хук и провайдер в одном файле — стандартный паттерн контекста,
+// выносить хук в отдельный файл без пользы (он не компонент).
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): UserContextValue {
   const ctx = useContext(UserContext);
   if (!ctx) {
