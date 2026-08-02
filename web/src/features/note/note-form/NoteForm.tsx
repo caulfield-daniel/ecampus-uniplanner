@@ -4,8 +4,8 @@ import { Input } from '@/shared/ui/input';
 import { Textarea } from '@/shared/ui/textarea';
 import { Label } from '@/shared/ui/label';
 import type { Note } from '@/shared/types';
-import type { NoteInputDto } from '@/entities/note/api/noteApi';
-import { useCreateNoteMutation, useUpdateNoteMutation } from '@/entities/note/model/queries';
+import type { NoteInputDto } from '@/entities/note';
+import { useCreateNoteMutation, useUpdateNoteMutation } from '@/entities/note';
 
 interface NoteFormProps {
   note?: Note;

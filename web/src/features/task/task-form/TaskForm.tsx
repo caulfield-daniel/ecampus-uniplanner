@@ -5,8 +5,9 @@ import { Textarea } from '@/shared/ui/textarea';
 import { Label } from '@/shared/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import type { Task } from '@/shared/types';
-import type { TaskInputDto } from '@/entities/task/api/taskApi';
-import { useCreateTaskMutation, useUpdateTaskMutation } from '@/entities/task/model/queries';
+import { toLocalInputValue, fromLocalInputValue } from '@/shared/lib/date';
+import type { TaskInputDto } from '@/entities/task';
+import { useCreateTaskMutation, useUpdateTaskMutation } from '@/entities/task';
 
 interface TaskFormProps {
   task?: Task;
@@ -19,7 +20,9 @@ interface TaskFormProps {
 export function TaskForm({ task, lessonId, onSuccess }: TaskFormProps) {
   const [title, setTitle] = useState(task?.title ?? '');
   const [description, setDescription] = useState(task?.description ?? '');
-  const [deadline, setDeadline] = useState(task?.deadline.slice(0, 16) ?? '');
+  // Дедлайн в инпуте — в ЛОКАЛЬНОМ времени: task.deadline хранит UTC ISO,
+  // а старый slice(0, 16) показывал бы UTC-срез (баг в не-UTC таймзонах).
+  const [deadline, setDeadline] = useState(task ? toLocalInputValue(new Date(task.deadline)) : '');
   const [priority, setPriority] = useState(String(task?.priority ?? 3));
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +35,8 @@ export function TaskForm({ task, lessonId, onSuccess }: TaskFormProps) {
     const input: TaskInputDto = {
       title,
       description: description || undefined,
-      deadline: new Date(deadline).toISOString(),
+      // Из ЛОКАЛЬНОГО значения инпута (YYYY-MM-DDTHH:mm) в UTC ISO для отправки на сервер.
+      deadline: fromLocalInputValue(deadline).toISOString(),
       priority: Number(priority),
       completed: task?.completed ?? false,
       relatedLessonId: lessonId ?? task?.relatedLessonId,
