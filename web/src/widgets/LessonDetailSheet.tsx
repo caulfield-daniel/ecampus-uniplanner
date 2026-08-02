@@ -3,12 +3,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/shared/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 import { Button } from '@/shared/ui/button';
 import type { Lesson } from '@/shared/types';
-import { useTasksQuery } from '@/entities/task/model/queries';
-import { useNotesQuery } from '@/entities/note/model/queries';
-import { TaskRow } from '@/entities/task/ui/TaskRow';
-import { NoteCard } from '@/entities/note/ui/NoteCard';
-import { TaskForm } from '@/features/task/task-form/TaskForm';
-import { NoteForm } from '@/features/note/note-form/NoteForm';
+// Импорты из публичных API (FSD): сущности task/note и фичи task-form/note-form
+// переэкспортируют хуки и компоненты через свои баррели (index.ts) — глубоких
+// импортов во внутренние модули (model/queries, ui/*) нет.
+import { TaskRow, useTasksQuery, useToggleTaskMutation } from '@/entities/task';
+import { NoteCard, useNotesQuery } from '@/entities/note';
+import { TaskForm } from '@/features/task/task-form';
+import { NoteForm } from '@/features/note/note-form';
 
 interface LessonDetailSheetProps {
   lesson: Lesson | null;
@@ -24,6 +25,9 @@ export function LessonDetailSheet({ lesson, onClose }: LessonDetailSheetProps) {
 
   const { data: tasks } = useTasksQuery(lesson?.id);
   const { data: notes } = useNotesQuery(lesson?.id);
+  // Переключение выполнения задачи (галочка TaskRow): мутация инвалидирует кэш,
+  // список перезапросится автоматически.
+  const toggleMutation = useToggleTaskMutation();
 
   if (!lesson) {
     return null;
@@ -52,7 +56,7 @@ export function LessonDetailSheet({ lesson, onClose }: LessonDetailSheetProps) {
 
           <TabsContent value="tasks" className="space-y-2">
             {tasks?.map((task) => (
-              <TaskRow key={task.id} task={task} />
+              <TaskRow key={task.id} task={task} onToggle={(task) => toggleMutation.mutate(task)} />
             ))}
             {addingTask ? (
               <TaskForm lessonId={lesson.id} onSuccess={() => setAddingTask(false)} />
