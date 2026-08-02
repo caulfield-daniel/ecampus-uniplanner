@@ -6,7 +6,7 @@ import { Badge } from '@/shared/ui/badge';
 import { cn } from '@/shared/lib/utils';
 import { addDays, getWeekStart, toIsoDate } from '@/shared/lib/date';
 import { subjectColor } from '@/shared/lib/subjectColor';
-import { useAuth } from '@/app/providers/AuthProvider';
+import { useAuth } from '@/entities/user';
 import { useTasksQuery } from '@/entities/task/model/queries';
 import { useScheduleQuery } from '@/entities/lesson/model/queries';
 

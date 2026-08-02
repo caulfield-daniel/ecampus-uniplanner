@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Card, CardHeader, CardTitle } from '@/shared/ui/card';
 import { toIsoDate } from '@/shared/lib/date';
-import { useAuth } from '@/app/providers/AuthProvider';
+import { useAuth } from '@/entities/user';
 import { useTasksQuery } from '@/entities/task/model/queries';
 import { useNotesQuery } from '@/entities/note/model/queries';
 import { useScheduleQuery } from '@/entities/lesson/model/queries';

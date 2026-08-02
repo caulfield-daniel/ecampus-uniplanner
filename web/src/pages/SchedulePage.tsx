@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { WeekSwitcher } from '@/features/schedule/week-switcher/WeekSwitcher';
 import { LessonCard } from '@/entities/lesson/ui/LessonCard';
 import { LessonDetailSheet } from '@/widgets/LessonDetailSheet';
-import { useAuth } from '@/app/providers/AuthProvider';
+import { useAuth } from '@/entities/user';
 import { useScheduleQuery } from '@/entities/lesson/model/queries';
 import { addDays, formatWeekday, getWeekStart, toIsoDate } from '@/shared/lib/date';
 import type { Lesson } from '@/shared/types';
