@@ -1,7 +1,7 @@
 ---
 date: 2026-08-03
 topic: "Доработка архитектурного фундамента: KMP как единый источник истины"
-status: validated
+status: done
 execution_session: эта сессия
 ---
 
@@ -35,8 +35,8 @@ shared/ApiModels.kt (@Serializable, ЕДИНСТВЕННЫЙ источник)
    │
    ├─▶ :shared:generateJsonSchemas (JavaExec → jvmMain main(), кастомный генератор)
    │     ▼
-   │   api/schemas/*.json  (коммитится)
-   │     │  web: npm run generate:types (json-schema-to-typescript)
+   │   api/schemas/*.json  (коммитится; 23 схемы)
+   │     │  web: npm run generate:types (node scripts/generate-types.mjs → json-schema-to-typescript)
    │     ▼
    │   web/src/shared/types/generated/*.d.ts  (коммитится)
    │     │  barrel web/src/shared/types/index.ts
@@ -64,48 +64,48 @@ shared/ApiModels.kt (@Serializable, ЕДИНСТВЕННЫЙ источник)
 - [x] Покрытие подтверждено по моделям: nullable (`String?`), default-значения (`isOptional` → не-required), вложенные классы (`LoginResponse.user: User` → инлайн), списки (`ParserSyncRequest.groups: List<String?>`), `Int`/`String`/`Boolean`, enum-kind (задел)
 - [x] Вывод `json-schema-to-typescript` на наших моделях: инлайн-объекты без `title` → анонимные объектные типы (структурно корректно); корневые схемы с `title` = имя модели → именованные интерфейсы
 
-### Этап 2. Генератор JSON Schema в shared
-- [ ] `shared/src/commonMain/kotlin/ru/uniplanner/shared/schema/JsonSchemaGenerator.kt` — чистый обход дескриптора → JSON-строка (без IO, тестируемо в commonTest):
+### Этап 2. Генератор JSON Schema в shared ✅
+- [x] `shared/src/commonMain/kotlin/ru/uniplanner/shared/schema/JsonSchemaGenerator.kt` — чистый обход дескриптора → JSON-строка (без IO, тестируемо в commonTest):
   - класс → `type: object`, `properties`, `required` (не-optional и не-nullable), `title` = короткое имя
   - nullable → `type: ["T", "null"]`; список → `type: array, items`; enum-kind → `enum`
   - вложенные `@Serializable` классы → инлайн (без `$defs`), без `title` (анонимные в TS)
-- [ ] `shared/src/jvmMain/kotlin/ru/uniplanner/shared/schema/GenerateJsonSchemasMain.kt` — `main(args)` с выходной директорией; пишет `api/schemas/<Name>.json` (pretty-print, стабильный порядок ключей)
-- [ ] `shared/build.gradle.kts`: удалить `js(IR)` таргет, opt-in `ExperimentalJsExport`, таски `buildJsDev/Prod`, `copyJsToWebDev/Prod`, `cleanWebKmp`, `rebuildJs*`; добавить таск `generateJsonSchemas` (JavaExec, класс `...GenerateJsonSchemasMainKt`, аргумент — `api/schemas`); jvmMain-зависимости не нужны (только stdlib+serialization)
-- [ ] Удалить `@JsExport` из всех моделей (`ApiModels.kt`), добавить `ParserSyncResponse` (по дизайну university-sync: `group`, `startDate`, `endDate`, `syncedLessons`/`status` — точные поля согласует executor с дизайном)
-- [ ] `shared/src/commonTest/.../JsonSchemaGeneratorTest.kt` (заменяет `OpenApiValidationTest.kt`): для каждой модели — генерация валидного JSON, структурные проверки (nullable, required, вложенность, список); golden-снимки на `Task`, `LoginResponse`, `ParserSyncRequest`; старые проверки `ModelValidators` переносятся как есть
-- **Критерий готовности:** `./gradlew :shared:generateJsonSchemas` пишет 22 файла (21 + `ParserSyncResponse`); `./gradlew :shared:jvmTest` зелёный
+- [x] `shared/src/jvmMain/kotlin/ru/uniplanner/shared/schema/GenerateJsonSchemasMain.kt` — `main(args)` с выходной директорией; пишет `api/schemas/<Name>.json` (pretty-print, стабильный порядок ключей)
+- [x] `shared/build.gradle.kts`: удалить `js(IR)` таргет, opt-in `ExperimentalJsExport`, таски `buildJsDev/Prod`, `copyJsToWebDev/Prod`, `cleanWebKmp`, `rebuildJs*`; добавить таск `generateJsonSchemas` (JavaExec, класс `...GenerateJsonSchemasMainKt`, аргумент — `api/schemas`); jvmMain-зависимости не нужны (только stdlib+serialization)
+- [x] Удалить `@JsExport` из всех моделей (`ApiModels.kt`), добавить `ParserSyncResponse` (по дизайну university-sync: `group`, `startDate`, `endDate`, `syncedLessons`/`status` — точные поля согласует executor с дизайном)
+- [x] `shared/src/commonTest/.../JsonSchemaGeneratorTest.kt` (заменяет `OpenApiValidationTest.kt`): для каждой модели — генерация валидного JSON, структурные проверки (nullable, required, вложенность, список); golden-снимки на `Task`, `LoginResponse`, `ParserSyncRequest`; старые проверки `ModelValidators` переносятся как есть
+- **Критерий готовности:** `./gradlew :shared:generateJsonSchemas` пишет 22 файла (21 + `ParserSyncResponse`); `./gradlew :shared:jvmTest` зелёный. **Факт:** 23 схемы в `api/schemas/` (добавился `ValidationResult`), `:shared:jvmTest` зелёный
 
-### Этап 3. Генерация TS-типов для web
-- [ ] `web/package.json`: devDependency `json-schema-to-typescript`; скрипт `"generate:types": "json2ts -i '../api/schemas/*.json' -o 'src/shared/types/generated'"` (флаги CLI сверить по `json2ts --help` на момент реализации)
-- [ ] Сгенерировать `web/src/shared/types/generated/*.d.ts` (коммитится)
-- [ ] Переписать barrel `web/src/shared/types/index.ts`: реэкспорт из `./generated` всех моделей (включая `TaskInput`, `NoteInput`, `RegisterRequest`, `LoginRequest`, `LoginResponse`, `CaptchaChallengeResponse`, `UniversityLoginRequest`, `UniversityLinkStatus`, `ValidationResult`, `ParserSyncResponse`); **удалить патч `relatedLessonId`** (теперь генерируется); удалить импорт из `@shared/kmp`
-- [ ] Удалить ручные дубли: `LoginRequest/RegisterRequest/LoginResponse` из `userApi.ts`, `TaskInputDto` из `taskApi.ts`, `NoteInputDto` из `noteApi.ts` (перейти на типы из `@/shared/types`)
-- [ ] Удалить мост: `web/src/shared/kmp/index.ts` (git rm) + директорию `web/src/shared/kmp/dto/` (с диска); убрать alias `@shared` из `vite.config.ts` и `tsconfig.app.json` (если больше не используется)
-- [ ] `.gitignore`: удалить строку `web/src/shared/kmp/`; убедиться, что `api/schemas/` и `generated/` не игнорируются
-- **Критерий готовности:** `tsc -b`, `vitest run`, `lint`, `vite build` зелёные; `grep -r "@shared/kmp" web/src` пуст; `grep -ri "TaskInputDto\|NoteInputDto" web/src` пуст
+### Этап 3. Генерация TS-типов для web ✅
+- [x] `web/package.json`: devDependency `json-schema-to-typescript`; скрипт `"generate:types"` (реализован через `node scripts/generate-types.mjs` с программным API — CLI v15 обрабатывает только один файл; это обоснованное отклонение от `json2ts -i`)
+- [x] Сгенерировать `web/src/shared/types/generated/*.d.ts` (коммитится) — 24 файла (23 модели + barrel)
+- [x] Переписать barrel `web/src/shared/types/index.ts`: реэкспорт из `./generated` всех моделей (включая `TaskInput`, `NoteInput`, `RegisterRequest`, `LoginRequest`, `LoginResponse`, `CaptchaChallengeResponse`, `UniversityLoginRequest`, `UniversityLinkStatus`, `ValidationResult`, `ParserSyncResponse`); **удалить патч `relatedLessonId`** (теперь генерируется); удалить импорт из `@shared/kmp`
+- [x] Удалить ручные дубли: `LoginRequest/RegisterRequest/LoginResponse` из `userApi.ts`, `TaskInputDto` из `taskApi.ts`, `NoteInputDto` из `noteApi.ts` (перейти на типы из `@/shared/types`)
+- [x] Удалить мост: `web/src/shared/kmp/index.ts` (git rm) + директорию `web/src/shared/kmp/dto/` (с диска); убрать alias `@shared` из `vite.config.ts` и `tsconfig.app.json` (если больше не используется)
+- [x] `.gitignore`: удалить строку `web/src/shared/kmp/`; убедиться, что `api/schemas/` и `generated/` не игнорируются
+- **Критерий готовности:** `tsc -b`, `vitest run`, `lint`, `vite build` зелёные; `grep -r "@shared/kmp" web/src` пуст; `grep -ri "TaskInputDto\|NoteInputDto" web/src` пуст. **Факт:** `@shared/kmp` — 0 вхождений; `TaskInputDto`/`NoteInputDto` — 0 в коде (остались только в тексте/комментарии `NoteForm.test.tsx`, не дубликаты)
 
-### Этап 4. OpenAPI из KMP
-- [ ] `api/backend-api.yaml`: заменить рукописные схемы на `$ref: './schemas/<Name>.json'`; добавить схемы-рефы для `Institute`, `Specialty`, `AcademicGroup`, `Teacher`, `Room`, `ParserStatusResponse`, `ParserSyncRequest`, `CaptchaChallengeResponse`, `UniversityLoginRequest`, `UniversityLinkStatus`, `ParserSyncResponse`
-- [ ] Добавить недостающие paths: `/university-auth/captcha|login|status|link`, `/parser/lessons` (по `2026-08-03-university-sync-design.md`)
-- [ ] `api/openapi.yaml`: бамп `openapi: 3.1.0`; рефы на новые схемы/пути
-- [ ] `api/parser-api.yaml`: НЕ трогаем (контракт независимого микросервиса)
-- **Критерий готовности:** спеки валидны (проверить парсером/редактором), `relatedLessonId` присутствует, схемы — рефы на сгенерированные файлы
+### Этап 4. OpenAPI из KMP ✅
+- [x] `api/backend-api.yaml`: заменить рукописные схемы на `$ref: './schemas/<Name>.json'`; добавить схемы-рефы для `Institute`, `Specialty`, `AcademicGroup`, `Teacher`, `Room`, `ParserStatusResponse`, `ParserSyncRequest`, `CaptchaChallengeResponse`, `UniversityLoginRequest`, `UniversityLinkStatus`, `ParserSyncResponse`
+- [x] Добавить недостающие paths: `/university-auth/captcha|login|status|link`, `/parser/lessons` (по `2026-08-03-university-sync-design.md`)
+- [x] `api/openapi.yaml`: бамп `openapi: 3.1.0`; рефы на новые схемы/пути
+- [x] `api/parser-api.yaml`: НЕ трогаем (контракт независимого микросервиса)
+- **Критерий готовности:** спеки валидны (проверить парсером/редактором), `relatedLessonId` присутствует, схемы — рефы на сгенерированные файлы. **Факт:** коммит `d94c306` «wire OpenAPI schemas to generated api/schemas»
 
-### Этап 5. CI и документация
-- [ ] `.github/workflows/schema-sync.yml`: setup-java 21 + setup-node 22 → `./gradlew :shared:generateJsonSchemas` → `cd web && npm ci && npm run generate:types` → `git diff --exit-code` (guard дрейфа) → `npm run build` + `npm run test` + `npm run lint`
-- [ ] Корневой `build.gradle.kts`: убрать JS-агрегаты (`buildJsDev/Prod`, `rebuildJs*`), `buildAllDev` → `:shared:generateJsonSchemas` (+ web generate:types в doLast/доке), обновить `showTasks`
-- [ ] `README.md`: заменить `buildJsDevAndCopy`/`.d.ts`-инструкции на новый флоу: поменял модель → `./gradlew :shared:generateJsonSchemas` → `cd web && npm run generate:types`
-- [ ] `ARCHITECTURE.md`: Design Principles (web — через сгенерированные TS, не `.d.mts`), Directory Structure (`api/schemas/`, `web/src/shared/types/generated/`, удалить `kmp/dto`), Data Flow, Known Gaps (вычеркнуть закрытые, добавить «JS-таргет удалён», «parser — независимый, вне KMP»)
-- **Критерий готовности:** свежий clone → `npm ci && npm run build && npm test` без прогона Gradle; доки не упоминают `copyJsToWebDev`
+### Этап 5. CI и документация ✅
+- [x] `.github/workflows/schema-sync.yml`: setup-java 21 + setup-node 22 → `./gradlew :shared:generateJsonSchemas` → `cd web && npm ci && npm run generate:types` → `git diff --exit-code` (guard дрейфа) → `npm run build` + `npm run test` + `npm run lint`
+- [x] Корневой `build.gradle.kts`: убрать JS-агрегаты (`buildJsDev/Prod`, `rebuildJs*`), `buildAllDev` → `:shared:generateJsonSchemas` (+ web generate:types в doLast/доке), обновить `showTasks`
+- [x] `README.md`: заменить `buildJsDevAndCopy`/`.d.ts`-инструкции на новый флоу: поменял модель → `./gradlew :shared:generateJsonSchemas` → `cd web && npm run generate:types`
+- [x] `ARCHITECTURE.md`: Design Principles (web — через сгенерированные TS, не `.d.mts`), Directory Structure (`api/schemas/`, `web/src/shared/types/generated/`, удалить `kmp/dto`), Data Flow, Known Gaps (вычеркнуть закрытые, добавить «JS-таргет удалён», «parser — независимый, вне KMP»)
+- **Критерий готовности:** свежий clone → `npm ci && npm run build && npm test` без прогона Gradle; доки не упоминают `copyJsToWebDev`. **Факт:** grep `copyJsToWebDev|buildJsDev` по README/ARCHITECTURE/CODE_STYLE — пусто
 
-## Definition of Done (общий)
+## Definition of Done (общий) ✅
 
-- [ ] Ноль ручных TS-дублей моделей в web (grep-проверки из Этапа 3)
-- [ ] Демо: изменение поля в `shared/ApiModels.kt` → `./gradlew :shared:generateJsonSchemas && npm run generate:types` → тип обновлён без ручных правок
-- [ ] `tsc` / `npm run test` / `npm run build` / `npm run lint` — зелёные; `./gradlew :shared:jvmTest` — зелёный
-- [ ] Свежий clone: web собирается без прогона Gradle
-- [ ] `api/backend-api.yaml` схемы = сгенерированные `api/schemas/*.json` (структурно, через $ref); CI-diff-guard зелёный
-- [ ] JS-таргет и все артефакты `.mjs`/`.d.mts` удалены из репозитория
+- [x] Ноль ручных TS-дублей моделей в web (grep-проверки из Этапа 3)
+- [x] Демо: изменение поля в `shared/ApiModels.kt` → `./gradlew :shared:generateJsonSchemas && npm run generate:types` → тип обновлён без ручных правок
+- [x] `tsc` / `npm run test` / `npm run build` / `npm run lint` — зелёные; `./gradlew :shared:jvmTest` — зелёный
+- [x] Свежий clone: web собирается без прогона Gradle
+- [x] `api/backend-api.yaml` схемы = сгенерированные `api/schemas/*.json` (структурно, через $ref); CI-diff-guard зелёный
+- [x] JS-таргет и все артефакты `.mjs`/`.d.mts` удалены из репозитория
 
 ## Вне скоупа (осознанно)
 
