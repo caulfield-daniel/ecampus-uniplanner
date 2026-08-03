@@ -1,8 +1,8 @@
-openapi: 3.0.0
+openapi: 3.1.0
 info:
   title: Ecampus UniPlanner API
   description: |
-    API для студенческого органайзера. Поддерживает регистрацию, вход, 
+    API для студенческого органайзера. Поддерживает регистрацию, вход,
     управление задачами и заметками, а также просмотр расписания по группе.
   version: 1.0.0
   license:
@@ -25,6 +25,8 @@ tags:
     description: Расписание занятий
   - name: groups
     description: Справочник групп
+  - name: university
+    description: Подключение к ИС университета (university-sync)
   - name: parser
     description: Парсер расписания (внутренний API)
 
@@ -40,7 +42,7 @@ components:
     ErrorResponse:
       $ref: './common.yaml#/ErrorResponse'
 
-    # Backend API схемы
+    # Backend API схемы — единый источник: api/schemas/*.json (генерируется из shared)
     User:
       $ref: './backend-api.yaml#/User'
     RegisterRequest:
@@ -62,21 +64,29 @@ components:
     GroupInfo:
       $ref: './backend-api.yaml#/GroupInfo'
 
-    # Parser API схемы
+    # Схемы контура университета (university-sync)
     Institute:
-      $ref: './parser-api.yaml#/Institute'
+      $ref: './backend-api.yaml#/Institute'
     Specialty:
-      $ref: './parser-api.yaml#/Specialty'
+      $ref: './backend-api.yaml#/Specialty'
     AcademicGroup:
-      $ref: './parser-api.yaml#/AcademicGroup'
+      $ref: './backend-api.yaml#/AcademicGroup'
     Teacher:
-      $ref: './parser-api.yaml#/Teacher'
+      $ref: './backend-api.yaml#/Teacher'
     Room:
-      $ref: './parser-api.yaml#/Room'
+      $ref: './backend-api.yaml#/Room'
+    CaptchaChallengeResponse:
+      $ref: './backend-api.yaml#/CaptchaChallengeResponse'
+    UniversityLoginRequest:
+      $ref: './backend-api.yaml#/UniversityLoginRequest'
+    UniversityLinkStatus:
+      $ref: './backend-api.yaml#/UniversityLinkStatus'
     ParserStatusResponse:
-      $ref: './parser-api.yaml#/ParserStatusResponse'
+      $ref: './backend-api.yaml#/ParserStatusResponse'
     ParserSyncRequest:
-      $ref: './parser-api.yaml#/ParserSyncRequest'
+      $ref: './backend-api.yaml#/ParserSyncRequest'
+    ParserSyncResponse:
+      $ref: './backend-api.yaml#/ParserSyncResponse'
 
 paths:
   # Backend API paths
@@ -99,6 +109,16 @@ paths:
   /groups:
     $ref: './backend-api.yaml#/groups_get'
 
+  # University Auth paths (university-sync)
+  /university-auth/captcha:
+    $ref: './backend-api.yaml#/university_auth_captcha'
+  /university-auth/login:
+    $ref: './backend-api.yaml#/university_auth_login'
+  /university-auth/status:
+    $ref: './backend-api.yaml#/university_auth_status'
+  /university-auth/link:
+    $ref: './backend-api.yaml#/university_auth_link'
+
   # Parser API paths
   /parser/status:
     $ref: './parser-api.yaml#/parser_status'
@@ -110,3 +130,45 @@ paths:
     $ref: './parser-api.yaml#/parser_specialties'
   /parser/groups:
     $ref: './parser-api.yaml#/parser_groups'
+  # GET /parser/lessons — целевой контракт backend→parser (по university-sync design).
+  # Описан здесь, т.к. api/parser-api.yaml — контракт независимого микросервиса и в этой
+  # итерации не меняется; реализация эндпоинта — отдельный этап A работы по парсеру.
+  /parser/lessons:
+    get:
+      tags: [parser]
+      summary: Занятия по группе за период (внутренний эндпоинт парсера)
+      description: 'Возвращает занятия группы за период; используется backend''ом для синхронизации личного расписания'
+      parameters:
+        - name: group
+          in: query
+          required: true
+          schema:
+            type: string
+          description: 'Название группы (например, "ИТ-201")'
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: 'Начало периода (YYYY-MM-DD)'
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: 'Конец периода (YYYY-MM-DD)'
+      responses:
+        '200':
+          description: Список занятий
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: './backend-api.yaml#/Lesson'
+        '400':
+          description: Ошибка в параметрах
+        '404':
+          description: Группа не найдена

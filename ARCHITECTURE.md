@@ -148,7 +148,7 @@ parser API   http://localhost:8000/api/v1/parser/*   (internal service; Pydantic
 - **University website** (`https://ecampus.ncfu.ru/schedule`) — scraped by the parser; session auth via `cookies.json` file (`services/auth/cookie_file_auth.py`).
 - **PostgreSQL** — parser DB (`asyncpg`), migrations via Alembic.
 - **Ktor backend (planned)** — Supabase (PostgreSQL) + JWT per README; not implemented.
-- **No** Docker, CI (GitHub Actions), or cloud deployment configs exist yet.
+- **CI (GitHub Actions):** `.github/workflows/schema-sync.yml` — drift-guard регенерации (KMP shared → `api/schemas/*.json` → TS-типы web, см. Build & Deploy). Docker и cloud-деплой не настроены.
 
 ## Configuration
 
@@ -192,7 +192,14 @@ alembic upgrade head         # DB migrations (parser/alembic.ini)
 uvicorn app.main:app --reload   # serves :8000, docs at /docs
 ```
 
-> Note: `web/package.json` is named `web-tmp`; root `package.json` is an empty `{}` placeholder. No CI, Docker, or deployment configs exist.
+# CI (GitHub Actions) — `.github/workflows/schema-sync.yml`
+# Drift-guard: регенерация не должна менять закоммиченные артефакты.
+# 1. ./gradlew :shared:generateJsonSchemas          # KMP → api/schemas/*.json
+# 2. cd web && npm ci && npm run generate:types     # → src/shared/types/generated/*.d.ts
+# 3. git diff --exit-code                            # ← дрифт-гард: расхождение = fail
+# 4. cd web && npm run build && npm run test && npm run lint
+
+> Note: `web/package.json` is named `web-tmp`; root `package.json` is an empty `{}` placeholder. CI-дрифт-гард регенерации: `.github/workflows/schema-sync.yml`. Docker и cloud-деплой не настроены.
 
 ## Known Gaps / Notes
 

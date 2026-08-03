@@ -53,3 +53,12 @@ ecampus-uniplanner/
   1. Создайте data-класс с аннотацией `@Serializable` в `shared/src/commonMain/kotlin/...` и добавьте его в список сериализаторов в `GenerateJsonSchemasMain.kt`.
   2. Выполните `./gradlew :shared:generateJsonSchemas` (JSON Schema в `api/schemas/`) и `./gradlew :shared:jvmTest` (golden-снапшот-тесты `JsonSchemaGeneratorTest`).
   3. В web: `npm run generate:types` — сгенерирует `web/src/shared/types/generated/*.d.ts`; импортируйте: `import type { Model } from '@/shared/types'`.
+
+## CI (drift-guard)
+
+GitHub Actions workflow `.github/workflows/schema-sync.yml` на каждый push в `main` и pull request:
+
+1. `./gradlew :shared:generateJsonSchemas` — регенерация `api/schemas/*.json` из `shared`.
+2. `cd web && npm ci && npm run generate:types` — регенерация TS-типов web.
+3. `git diff --exit-code` — **дрифт-гард**: если регенерация меняет закоммиченные артефакты, задача падает.
+4. `npm run build && npm run test && npm run lint` — проверка сборки и тестов.
