@@ -39,7 +39,7 @@ status: draft
 
 1. 🔴 **`parser/cookies.json` закоммичен в git** — живая сессия ecampus.ncfu.ru в репозитории. Убрать из git, добавить в `.gitignore`, ротировать сессию
 2. 🟡 `useTasksQuery`/`useNotesQuery` без `enabled` — при `lesson === null` уходит запрос без фильтра (хвост FSD-рефакторинга)
-3. 🟡 web-типы не содержат university-моделей — нужно зеркалировать из shared KMP
+3. 🟡 `UniversityLoginRequest` в shared без `@JsExport` (не попадёт в JS-декларации); `ParserSyncResponse` не существует в shared — добавить в единый источник (см. «Единый источник типов»)
 4. 🟡 Модель аутентификации парсера (общий cookies.json) конфликтует с per-user моделью backend (шифрованные cookies каждого пользователя) — требует решения (см. Open Questions)
 
 ### Полировка vs новое
@@ -55,11 +55,13 @@ status: draft
 - UI-тексты на русском; shadcn/ui; TanStack Query; sonner toasts
 - Пароль ИС никогда не хранится на web; в backend — только шифрованные cookies сессии
 - Дизайн web-части опирается на **существующий контракт backend** (не меняется); парсер дорабатывается отдельным этапом
+- **Единый источник типов — KMP shared.** Никаких TS-дублей моделей в web: web получает типы из сгенерированных Kotlin/JS-деклараций (`shared.d.mts`) через цепочку `@/shared/types → @shared/kmp`. Правки типов вносятся только в `shared/ApiModels.kt` (+ `api/*.yaml` как контракт), затем `./gradlew :shared:copyJsToWebDev`
 
 ## Approach
 
+0. **Этап 0 (единый источник типов):** в `api/*.yaml` добавить схемы `UniversityLoginRequest` и `ParserSyncResponse`; в `shared/ApiModels.kt` добавить `@JsExport` к `UniversityLoginRequest`, создать `ParserSyncResponse`; пересобрать `./gradlew :shared:copyJsToWebDev`. TS-дублей в web не создавать — типы приезжают через `@/shared/types → @shared/kmp → dto/shared.d.mts`.
 1. **Этап A (парсер, отдельная работа):** реализовать `/auth/captcha`, `/auth/login`, `/parser/lessons`, `/parser/groups` (+ опц. profile для автоопределения группы); вычистить `cookies.json` из git
-2. **Этап B (web, этот дизайн):** типы → `entities/university` → `features/university/*` → `widgets/university` → `pages/university` → роутер/sidebar → тесты на mock контракта backend
+2. **Этап B (web, этот дизайн):** типы (из shared после этапа 0) → `entities/university` → `features/university/*` → `widgets/university` → `pages/university` → роутер/sidebar → тесты на mock контракта backend
 3. **Этап C:** сквозная интеграция, когда парсер готов
 
 ## Architecture
@@ -75,15 +77,9 @@ Backend: cookies пользователя → шифрование → Universit
 ## Components (FSD)
 
 ```
-shared/types
-  + CaptchaChallengeResponse { attemptId, captchaImageBase64 }
-  + UniversityLoginRequest { attemptId, login, password, captchaAnswer }
-  + UniversityLinkStatus { linked, lastValidatedAt? }
-  + ParserSyncResponse { syncedLessons }
-  + константы путей /university-auth/*, /parser/sync
-
 entities/university/
   api/universityApi.ts        getCaptcha, login, getStatus, unlink
+                              (типы — import type из @/shared/types, без локальных дублей)
   model/queries.ts            universityKeys, useUniversityStatusQuery,
                               useUniversityCaptchaMutation, useUniversityLoginMutation,
                               useUniversityUnlinkMutation, useParserSyncMutation
