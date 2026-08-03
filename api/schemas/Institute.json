@@ -1,0 +1,23 @@
+{
+  "type": "object",
+  "title": "Institute",
+  "properties": {
+    "id": {
+      "type": "integer"
+    },
+    "shortName": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "branchId": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "id",
+    "shortName",
+    "name"
+  ]
+}

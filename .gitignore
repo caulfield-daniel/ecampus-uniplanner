@@ -46,9 +46,6 @@ Thumbs.db
 secrets.properties
 local.properties
 
-# KMP артефакты в веб-клиенте
-web/src/shared/kmp/
-
 # BuildConfig (генерируется автоматически)
 **/buildConfig/
 

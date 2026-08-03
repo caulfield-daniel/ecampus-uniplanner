@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "title": "AcademicGroup",
+  "properties": {
+    "id": {
+      "type": "integer"
+    },
+    "name": {
+      "type": "string"
+    },
+    "eduLevel": {
+      "type": "string"
+    },
+    "specialtyId": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "eduLevel",
+    "specialtyId"
+  ]
+}

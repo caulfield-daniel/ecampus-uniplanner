@@ -1,0 +1,18 @@
+{
+  "type": "object",
+  "title": "UniversityLinkStatus",
+  "properties": {
+    "linked": {
+      "type": "boolean"
+    },
+    "lastValidatedAt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "linked"
+  ]
+}

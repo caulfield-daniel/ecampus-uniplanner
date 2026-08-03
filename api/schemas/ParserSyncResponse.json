@@ -1,0 +1,30 @@
+{
+  "type": "object",
+  "title": "ParserSyncResponse",
+  "properties": {
+    "group": {
+      "type": "string"
+    },
+    "startDate": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "endDate": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "syncedLessons": {
+      "type": "integer"
+    },
+    "status": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "group"
+  ]
+}

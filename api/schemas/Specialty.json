@@ -1,0 +1,20 @@
+{
+  "type": "object",
+  "title": "Specialty",
+  "properties": {
+    "id": {
+      "type": "integer"
+    },
+    "name": {
+      "type": "string"
+    },
+    "instituteId": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "instituteId"
+  ]
+}

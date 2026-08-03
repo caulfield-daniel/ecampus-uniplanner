@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "title": "CaptchaChallengeResponse",
+  "properties": {
+    "attemptId": {
+      "type": "string"
+    },
+    "captchaImageBase64": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "attemptId",
+    "captchaImageBase64"
+  ]
+}

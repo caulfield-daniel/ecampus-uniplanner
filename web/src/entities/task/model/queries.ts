@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Task } from '@/shared/types';
-import { taskApi, type TaskInputDto } from '../api/taskApi';
+import { taskApi } from '../api/taskApi';
+import type { TaskInput } from '@/shared/types';
 
 // Серверный кэш задач — заменяет ручной useEffect+fetch, инвалидируется после мутаций.
 export const taskKeys = {
@@ -15,7 +16,7 @@ export function useTasksQuery(lessonId?: number) {
 export function useCreateTaskMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: TaskInputDto) => taskApi.create(input),
+    mutationFn: (input: TaskInput) => taskApi.create(input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: taskKeys.all }),
   });
 }
@@ -23,7 +24,7 @@ export function useCreateTaskMutation() {
 export function useUpdateTaskMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, input }: { id: number; input: TaskInputDto }) => taskApi.update(id, input),
+    mutationFn: ({ id, input }: { id: number; input: TaskInput }) => taskApi.update(id, input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: taskKeys.all }),
   });
 }

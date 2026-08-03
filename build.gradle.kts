@@ -9,72 +9,30 @@ plugins {
 // ============================================
 
 /**
- * Сборка development JS (shared) и копирование в web
+ * Генерация JSON Schema из shared-моделей в api/schemas
  */
-tasks.register("buildJsDev") {
+tasks.register("generateSchemas") {
     group = "ecampus"
-    description = "Сборка development JS из shared-модуля и копирование в web/src/shared/kmp"
-    dependsOn(":shared:copyJsToWebDev")
+    description = "Генерация JSON Schema (api/schemas) из shared-моделей"
+    dependsOn(":shared:generateJsonSchemas")
 }
 
 /**
- * Сборка production JS (shared) и копирование в web
- */
-tasks.register("buildJsProd") {
-    group = "ecampus"
-    description = "Сборка production JS из shared-модуля и копирование в web/src/shared/kmp"
-    dependsOn(":shared:copyJsToWebProd")
-}
-
-/**
- * Полная development сборка проекта (shared + позже backend/android)
- */
-tasks.register("buildAllDev") {
-    group = "ecampus"
-    description = "Полная development сборка проекта"
-    dependsOn(":shared:copyJsToWebDev")
-    // TODO добавить backend и android
-}
-
-/**
- * Полная production сборка проекта (shared + позже backend/android)
+ * Полная сборка проекта (shared; позже backend/android)
  */
 tasks.register("buildAll") {
     group = "ecampus"
-    description = "Полная production сборка проекта"
-    dependsOn(":shared:copyJsToWebProd")
-    // TODO добавить backend и android
+    description = "Полная сборка проекта"
+    dependsOn(":shared:build")
 }
 
 /**
- * Очистка всех build-директорий и сгенерированных shared-файлов в web
+ * Очистка всех build-директорий
  */
 tasks.register("cleanAll") {
     group = "ecampus"
-    description = "Очистка всех build-директорий и сгенерированных shared-файлов в web"
-    dependsOn(
-        "clean",
-        ":shared:clean",
-        ":shared:cleanWebKmp"
-    )
-}
-
-/**
- * Полная пересборка development JS
- */
-tasks.register("rebuildJsDev") {
-    group = "ecampus"
-    description = "Полная пересборка development JS (clean → build → copy)"
-    dependsOn(":shared:rebuildJsDev")
-}
-
-/**
- * Полная пересборка production JS
- */
-tasks.register("rebuildJsProd") {
-    group = "ecampus"
-    description = "Полная пересборка production JS (clean → build → copy)"
-    dependsOn(":shared:rebuildJsProd")
+    description = "Очистка всех build-директорий"
+    dependsOn("clean", ":shared:clean")
 }
 
 /**
@@ -88,20 +46,17 @@ tasks.register("showTasks") {
         println("📦 ECAMPUS UNIPLANNER - Доступные задачи")
         println("=".repeat(60))
         println("\n🔧 СБОРКА:")
-        println("  buildJsDev       - Сборка development JS + копирование в web")
-        println("  buildJsProd      - Сборка production JS + копирование в web")
-        println("  buildAllDev      - Полная development сборка проекта")
-        println("  buildAll         - Полная production сборка проекта")
+        println("  generateSchemas - Генерация JSON Schema (api/schemas) из shared-моделей")
+        println("  buildAll        - Полная сборка проекта (shared)")
         println("\n🧹 ОЧИСТКА:")
-        println("  cleanAll         - Очистить все build-директории + сгенерированные shared-файлы")
-        println("\n🔄 ПЕРЕСБОРКА:")
-        println("  rebuildJsDev     - Полная пересборка development JS")
-        println("  rebuildJsProd    - Полная пересборка production JS")
+        println("  cleanAll        - Очистить все build-директории")
         println("\nℹ️  ИНФО:")
-        println("  showTasks        - Показать это сообщение")
-        println("  tasks            - Показать все задачи Gradle")
+        println("  showTasks       - Показать это сообщение")
+        println("  tasks           - Показать все задачи Gradle")
+        println("\n🌐 ВЕБ-КЛИЕНТ (web/):")
+        println("  npm run generate:types - Генерация TS-типов (web/src/shared/types/generated) из api/schemas")
         println("\n" + "=".repeat(60))
-        println("📁 Сгенерированные файлы: ./web/src/shared/kmp/dto.*")
+        println("📁 Сгенерированные файлы: api/schemas/*.json, web/src/shared/types/generated/*.d.ts")
         println("=".repeat(60) + "\n")
     }
 }

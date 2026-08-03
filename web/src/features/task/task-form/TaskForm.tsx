@@ -6,7 +6,7 @@ import { Label } from '@/shared/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import type { Task } from '@/shared/types';
 import { toLocalInputValue, fromLocalInputValue } from '@/shared/lib/date';
-import type { TaskInputDto } from '@/entities/task';
+import type { TaskInput } from '@/shared/types';
 import { useCreateTaskMutation, useUpdateTaskMutation } from '@/entities/task';
 
 interface TaskFormProps {
@@ -32,7 +32,7 @@ export function TaskForm({ task, lessonId, onSuccess }: TaskFormProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const input: TaskInputDto = {
+    const input: TaskInput = {
       title,
       description: description || undefined,
       // Из ЛОКАЛЬНОГО значения инпута (YYYY-MM-DDTHH:mm) в UTC ISO для отправки на сервер.

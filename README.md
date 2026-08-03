@@ -7,7 +7,7 @@
 Проект представляет собой монорепозиторий, содержащий:
 
 - **Gradle-модули**:
-  - `shared` — общий Kotlin Multiplatform модуль с моделями данных (экспорт для JVM и JS).
+  - `shared` — общий Kotlin Multiplatform модуль с моделями данных (экспорт для JVM).
   - `backend` — серверное приложение на Kotlin + Ktor.
   - `android` — Android-клиент на Jetpack Compose (в разработке).
 
@@ -50,6 +50,6 @@ ecampus-uniplanner/
 
 - Все модели данных находятся в `shared/src/commonMain/kotlin/...`.
 - Для добавления новой модели:
-  1. Создайте data-класс с аннотациями `@Serializable` и `@JsExport`.
-  2. Выполните `./gradlew :shared:buildJsDevAndCopy`.
-  3. Импортируйте типы в React: `import type { Model } from './shared/kmp/shared.dev.d.ts'`.
+  1. Создайте data-класс с аннотацией `@Serializable` в `shared/src/commonMain/kotlin/...` и добавьте его в список сериализаторов в `GenerateJsonSchemasMain.kt`.
+  2. Выполните `./gradlew :shared:generateJsonSchemas` (JSON Schema в `api/schemas/`) и `./gradlew :shared:jvmTest` (golden-снапшот-тесты `JsonSchemaGeneratorTest`).
+  3. В web: `npm run generate:types` — сгенерирует `web/src/shared/types/generated/*.d.ts`; импортируйте: `import type { Model } from '@/shared/types'`.

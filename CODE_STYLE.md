@@ -16,18 +16,18 @@
 | Props types | `interface XxxProps` declared above the component | `TaskRow.tsx:14-17` |
 | Query keys | factory objects: `xxxKeys.all`, `xxxKeys.list(id)` | `entities/task/model/queries.ts:6-9` |
 | API modules | `export const xxxApi = { list, create, update, remove }` | `entities/task/api/taskApi.ts:16` |
-| Request DTOs | `XxxInputDto` suffix (avoids TS structural clash with Kotlin-generated classes) | `taskApi.ts:7` |
+| Request input types | `<X>Input` from `@/shared/types` (generated; e.g. TaskInput/NoteInput) | `taskApi.ts:7` |
 | Constants | `UPPER_SNAKE_CASE` | `VITE_API_URL`, `API_BASE_URL` |
 
 ### Kotlin (`shared/`)
 | Thing | Convention | Example |
 |---|---|---|
 | Files | `PascalCase.kt` | `ApiModels.kt`, `ApiConstants.kt`, `ModelValidators.kt` |
-| Models | `data class` with `@Serializable` + `@JsExport` | `ApiModels.kt:23-28` |
+| Models | `data class` with `@Serializable` | `ApiModels.kt:23-28` |
 | Request/Response pairs | `Xxx` / `XxxInput` | `Task` / `TaskInput`, `LoginRequest` / `LoginResponse` |
 | Constants | `object ApiConstants` with `const val ENDPOINT_*`, `HEADER_*` | `ApiConstants.kt:8-34` |
 | Validators | `object ModelValidators`, `fun validateXxx(...): ValidationResult` | `ModelValidators.kt:10-28` |
-| Tests | `class XxxTest`, `fun testXxx()` | `OpenApiValidationTest.kt:8-11` |
+| Tests | `class XxxTest`, `fun testXxx()` | `JsonSchemaGeneratorTest.kt`, `ModelValidatorsTest.kt` |
 
 ### Python (`parser/`)
 | Thing | Convention | Example |
@@ -52,7 +52,7 @@ src/
 ├── entities/   # per domain: api/, model/, ui/   (task/, note/, lesson/)
 └── shared/     # api/, constants/, lib/, types/, ui/ (primitives), utils/, validators/
 ```
-New feature recipe: copy the `entities/<domain>/` triad — `api/<name>Api.ts` (thin `apiClient` wrapper + `<name>InputDto`), `model/queries.ts` (`<name>Keys` + `use<X>Query` / `use<Verb><X>Mutation`), `ui/<Name>Card.tsx` (`interface <Name>CardProps` + named export).
+New feature recipe: copy the `entities/<domain>/` triad — `api/<name>Api.ts` (thin `apiClient` wrapper; input types like <Name>Input come from @/shared/types — e.g. TaskInput/NoteInput), `model/queries.ts` (`<name>Keys` + `use<X>Query` / `use<Verb><X>Mutation`), `ui/<Name>Card.tsx` (`interface <Name>CardProps` + named export).
 
 ### Parser — layered
 ```
@@ -123,7 +123,7 @@ New endpoint recipe: add `XxxRepository` (`async def upsert/upsert_many/get_*`) 
 
 | Area | Pattern | Files |
 |---|---|---|
-| Kotlin (shared) | `commonTest` source set, `kotlin("test")`, `class XxxTest` + `fun testXxx()` | `shared/src/commonTest/.../OpenApiValidationTest.kt` |
+| Kotlin (shared) | `commonTest` source set, `kotlin("test")`, `class XxxTest` + `fun testXxx()` | `shared/src/commonTest/.../JsonSchemaGeneratorTest.kt`, `ModelValidatorsTest.kt` |
 | Python (parser) | pytest-style; standalone runnable scripts (`if __name__ == "__main__"`) in `app/utils/`; helpers in `app/tests/mock_repos.py` | `test_parser.py`, `test_institute_repo.py`, `test_parser_orchestrator.py` |
 | Web | ⚠️ no tests, no test runner configured | — |
 
@@ -136,13 +136,13 @@ New endpoint recipe: add `XxxRepository` (`async def upsert/upsert_many/get_*`) 
 - Do use `import type` for type-only imports in TS.
 - Do use absolute `from app.*` imports in Python.
 - Do use 4-layer Pydantic schemas and `XxxRepository` classes in the parser.
-- Do use `@Serializable` + `@JsExport` on every Kotlin model; keep them in sync with `api/*.yaml`.
-- Do regenerate the KMP→web bridge after changing Kotlin models: `./gradlew buildJsDev`.
+- Do use `@Serializable` on every Kotlin model; JSON Schemas (`api/schemas/*.json`) and web types are generated from them (`JsonSchemaGeneratorTest` guards drift).
+- Do regenerate schemas and web types after changing Kotlin models: `./gradlew :shared:generateJsonSchemas && (cd web && npm run generate:types)`.
 
 **Don't**
 - Don't use relative imports (`from .`) in the parser.
 - Don't write `const Component = () => ...` in web — use `export function`.
-- Don't hand-edit `web/src/shared/kmp/dto/*` — it's generated and gitignored.
+- Don't hand-edit `web/src/shared/types/generated/*` — generated (committed); change the Kotlin model and re-run generate:types.
 - Don't add a model to `ApiModels.kt` without the matching `validateXxx` in `ModelValidators.kt`.
 - Don't confuse parser API fields (`camelCase`) with DB columns (`snake_case`).
 - Don't create a new `web/src/shared/utils` module — use `shared/lib` (duplication exists today).

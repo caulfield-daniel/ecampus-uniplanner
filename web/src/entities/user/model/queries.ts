@@ -5,7 +5,8 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { queryClient } from '@/shared/api/queryClient';
 import * as tokenStorage from '@/shared/lib/tokenStorage';
-import { userApi, type LoginResponse, type RegisterRequest } from '../api/userApi';
+import { userApi } from '../api/userApi';
+import type { LoginResponse, RegisterRequest } from '@/shared/types';
 
 // Ключ кеша текущего пользователя: инвалидируется после логина/регистрации,
 // чтобы useMeQuery перезапросил профиль с новым токеном.

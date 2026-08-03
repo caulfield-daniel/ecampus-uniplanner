@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "title": "UniversityLoginRequest",
+  "properties": {
+    "attemptId": {
+      "type": "string"
+    },
+    "login": {
+      "type": "string"
+    },
+    "password": {
+      "type": "string"
+    },
+    "captchaAnswer": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "attemptId",
+    "login",
+    "password",
+    "captchaAnswer"
+  ]
+}

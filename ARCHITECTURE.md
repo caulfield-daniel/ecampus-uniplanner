@@ -10,15 +10,15 @@ Ecampus UniPlanner is a cross-platform student organizer. It provides a unified 
 
 - **KMP `shared` is the single source of truth** for models, DTOs and API contracts — for the server and every client. No component declares its own copies of types.
 - **Kotlin consumers are native:** `backend` (JVM) and `android` consume `shared` directly as a Gradle KMP module (`jvm`/`android` targets), no copying involved.
-- **The web client consumes `shared` via generated JS artifacts** (`shared.mjs` + `shared.d.mts` copied into `web/src/shared/kmp/dto/`). Hand-written TS mirrors of KMP models are forbidden; current exceptions are technical debt (see Known Gaps) and are scheduled for removal by the foundation plan.
-- **`api/*.yaml` is the derived HTTP contract:** its schemas must stay consistent with `shared` (enforced by `OpenApiValidationTest`); long-term, schemas are generated from KMP rather than hand-maintained.
-- **A type change happens once — in `shared/ApiModels.kt`** — and propagates by rebuilding (`./gradlew :shared:copyJsToWebDev`), never by editing each client.
+- **The web client consumes `shared` via generated JSON Schemas → TS types:** `:shared:generateJsonSchemas` writes `api/schemas/*.json` (committed), and `npm run generate:types` produces `web/src/shared/types/generated/*.d.ts`, re-exported through `@/shared/types`. Hand-written TS mirrors of KMP models are forbidden.
+- **`api/schemas/*.json` is the derived contract for web types:** generated from `shared` by `:shared:generateJsonSchemas` and drift-guarded by `JsonSchemaGeneratorTest`. `api/*.yaml` remains the HTTP contract spec, but is no longer test-enforced against `shared` (`OpenApiValidationTest` was deleted).
+- **A type change happens once — in `shared/ApiModels.kt`** — and propagates by regenerating (`./gradlew :shared:generateJsonSchemas` + `npm run generate:types`), never by editing each client.
 
 ## Tech Stack
 
 | Component | Technologies | Status |
 |---|---|---|
-| `shared/` | Kotlin 2.3.0, KMP (JVM 21 + JS IR, ES2015), kotlinx-serialization, BuildConfig plugin | ✅ active |
+| `shared/` | Kotlin 2.3.0, KMP (JVM 21), kotlinx-serialization, BuildConfig plugin | ✅ active |
 | `web/` | React 19, TypeScript 5.9, Vite 8 (beta), Tailwind CSS 4, shadcn/ui (Radix UI), react-router 7, @tanstack/react-query 5, lucide-react, ESLint 9 | ✅ active |
 | `parser/` | Python, FastAPI, Pydantic v2, SQLAlchemy 2.0 (async), asyncpg, Alembic, httpx, BeautifulSoup4, tenacity | ✅ active |
 | `backend/` | Spring Boot (Kotlin), compiled only | ⚠️ no source — compiled classes in `build/`, not registered in Gradle |
@@ -33,16 +33,21 @@ ecampus-uniplanner/
 │   ├── openapi.yaml              #   Master spec; aggregates the two below via $ref
 │   ├── backend-api.yaml          #   Ktor schemas: User, Task, Note, auth paths
 │   ├── parser-api.yaml           #   Parser schemas: Institute, Specialty, Group, Teacher, Lesson
-│   └── common.yaml               #   Shared schemas (ErrorResponse)
+│   ├── common.yaml               #   Shared schemas (ErrorResponse)
+│   └── schemas/*.json            #   JSON Schema, generated from shared (:shared:generateJsonSchemas), committed
 ├── shared/                       # Kotlin Multiplatform module (only Gradle module registered)
-│   ├── build.gradle.kts          #   KMP config: JVM 21 + JS IR; API_BASE_URL BuildConfig
+│   ├── build.gradle.kts          #   KMP config: JVM 21; API_BASE_URL BuildConfig; JavaExec generateJsonSchemas
 │   └── src/
 │       ├── commonMain/kotlin/ru/uniplanner/shared/
-│       │   ├── ApiModels.kt       #   @Serializable + @JsExport data models (hand-written from OpenAPI)
+│       │   ├── ApiModels.kt       #   @Serializable data models (hand-written from OpenAPI)
 │       │   ├── ApiConstants.kt    #   Endpoint path + header constants
-│       │   └── ModelValidators.kt #   Validation helpers returning ValidationResult
+│       │   ├── ModelValidators.kt #   Validation helpers returning ValidationResult
+│       │   └── schema/JsonSchemaGenerator.kt  #   Emits JSON Schema per model
+│       ├── jvmMain/kotlin/ru/uniplanner/shared/schema/
+│       │   └── GenerateJsonSchemasMain.kt     #   CLI entry (23 serializers) → api/schemas/
 │       └── commonTest/kotlin/ru/uniplanner/shared/
-│           └── OpenApiValidationTest.kt  #   Validates models against the spec
+│           ├── JsonSchemaGeneratorTest.kt     #   Golden snapshots + structural checks (23 schemas)
+│           └── ModelValidatorsTest.kt         #   43 validator tests
 ├── backend/                      # ⚠️ no source — compiled Spring Boot classes only
 │   ├── .env                      #   Env config
 │   └── build/                    #   Compiled classes + jars (not registered in Gradle)
@@ -56,9 +61,9 @@ ecampus-uniplanner/
 │       ├── features/             #   auth/, note/, schedule/, task/ (feature slices)
 │       ├── entities/             #   lesson/, note/, task/ (api + model + ui per entity)
 │       └── shared/
-│           ├── kmp/dto/          #   ← GENERATED by Gradle (shared.mjs + shared.d.mts); gitignored
-│           │                     #   .d.mts toolchain currently unstable (see Known Gaps)
-│           ├── api/ lib/ types/ ui/   #   types/ re-exports KMP types via kmp/
+│           ├── types/            #   index.ts re-exports generated types (alias @/shared/types)
+│           │   └── generated/    #   ← GENERATED by npm run generate:types from api/schemas/*.json; committed
+│           ├── api/ lib/ ui/
 │           └── mocks/            #   MSW handlers + factories (tests)
 ├── parser/                       # Python FastAPI microservice (schedule scraper)
 │   ├── requirements.txt / alembic.ini / alembic/
@@ -75,7 +80,7 @@ ecampus-uniplanner/
 │   └── .env / .env.example / cookies.json / parser_run.log
 ├── gradle/                       # Wrapper + libs.versions.toml (version catalog)
 ├── gradlew / gradlew.bat
-├── build.gradle.kts              # Root script: aggregate tasks (buildJsDev, cleanAll, showTasks, ...)
+├── build.gradle.kts              # Root script: aggregate tasks (group "ecampus") — showTasks, generateSchemas, buildAll, cleanAll
 ├── settings.gradle.kts           # Registers ONLY :shared
 ├── gradle.properties             # apiBaseUrl=http://localhost:8080/api/v1, requestTimeout=30000
 └── package.json                  # Empty placeholder "{}"
@@ -89,10 +94,10 @@ ecampus-uniplanner/
 - Bearer JWT auth scheme is declared here.
 
 ### `shared/` — KMP: single source of truth for models and contracts
-- The only place where models/DTOs are declared: hand-written `@Serializable` + `@JsExport` data classes (Request/Response split: `Task`/`TaskInput`, `LoginRequest`/`LoginResponse`). Server (`backend`), mobile (`android`) and web consume these — never their own copies.
+- The only place where models/DTOs are declared: hand-written `@Serializable` data classes (Request/Response split: `Task`/`TaskInput`, `LoginRequest`/`LoginResponse`). Server (`backend`), mobile (`android`) and web consume these — never their own copies.
 - `ModelValidators.kt` returns `ValidationResult(isValid, errors)` — no exceptions by default.
-- `OpenApiValidationTest.kt` keeps models consistent with `api/*.yaml` (spec ↔ KMP drift guard).
-- Compiled to a JS library (`shared.mjs` + `shared.d.mts`) and copied into `web/src/shared/kmp/dto/` by Gradle tasks (`copyJsToWebDev`/`copyJsToWebProd`). The JS artifacts are an *interop bridge* for the web client; the JVM target serves `backend`/`android` natively.
+- `JsonSchemaGeneratorTest.kt` keeps the committed JSON Schemas in `api/schemas/` consistent with the models — golden snapshots + structural checks of all 23 schemas (schema ↔ KMP drift guard); `ModelValidatorsTest.kt` covers the validators (43 tests).
+- `JsonSchemaGenerator.kt` (commonMain) with CLI entry `GenerateJsonSchemasMain.kt` (jvmMain, 23 serializers) emit a JSON Schema per model into `api/schemas/*.json` via the `:shared:generateJsonSchemas` JavaExec task. The committed schemas are the source of truth for web types; the JVM target serves `backend`/`android` natively.
 
 ### `web/` — React frontend
 - Entry: `web/src/main.tsx` → `app/App.tsx` (QueryClientProvider → AuthProvider → AppRouter).
@@ -100,7 +105,7 @@ ecampus-uniplanner/
 - Data fetching exclusively via react-query (`useQuery`/`useMutation` with query-key factories) and a thin fetch wrapper `shared/api/httpClient.ts` that attaches `Authorization: Bearer <token>`.
 - Uses Feature-Sliced Design layers: `app` → `pages` → `widgets` → `features/<domain>/<feature>/` → `entities/<domain>/` → `shared/`.
 - `entities/<domain>/` follows a triad: `api/<name>Api.ts` + `model/queries.ts` + `ui/<Name>Card.tsx`.
-- KMP bridge: types come from the generated `shared/kmp/dto/shared.d.mts` via `@/shared/types → @shared/kmp`; hand-written `InputDto` interfaces exist only because generated classes clash structurally with TS literals — tech debt scheduled for removal by the foundation plan (see Known Gaps).
+- Shared types bridge: web types come from the committed JSON Schemas in `api/schemas/*.json` — `npm run generate:types` (web/scripts/generate-types.mjs, json-schema-to-typescript) writes `web/src/shared/types/generated/*.d.ts`, re-exported via `@/shared/types` (web/src/shared/types/index.ts). Hand-written `InputDto` interfaces were removed — `TaskInput`/`NoteInput` now come from the generated types.
 
 ### `parser/` — Python FastAPI scraper microservice
 - Scrapes the university information system (`https://ecampus.ncfu.ru/schedule`) using httpx + BeautifulSoup4, authenticated with session cookies from `cookies.json`.
@@ -114,14 +119,16 @@ ecampus-uniplanner/
 ## Data Flow
 
 ```
-shared/ ApiModels.kt (@Serializable @JsExport)   ← single source of truth for models/contracts
-   │  consistency with api/*.yaml enforced by OpenApiValidationTest
+shared/ ApiModels.kt (@Serializable)              ← single source of truth for models/contracts
+   │  :shared:generateJsonSchemas (JsonSchemaGenerator.kt + GenerateJsonSchemasMain.kt)
+   │  drift-guard: JsonSchemaGeneratorTest (golden snapshots, all 23 schemas)
    ├─▶ backend / android:  JVM target — native Gradle dependency (no copies)
    │
-   └─▶ web:  ./gradlew buildJsDev → copyJsToWebDev
+   └─▶ api/schemas/*.json                          (generated, committed)
+            │  npm run generate:types (web/scripts/generate-types.mjs)
             ▼
-      web/src/shared/kmp/dto/shared.mjs + shared.d.mts   (generated, gitignored)
-            │  import type { ... } from '@/shared/kmp/...'
+      web/src/shared/types/generated/*.d.ts
+            │  import type { ... } from '@/shared/types'   (re-exported via web/src/shared/types/index.ts)
             ▼
       web/ React app ──fetch (Bearer token)──▶ backend API  http://localhost:8080/api/v1
                                                 ▲
@@ -131,7 +138,7 @@ parser/ FastAPI ──scrape──▶ ecampus.ncfu.ru (cookies.json session auth
 parser API   http://localhost:8000/api/v1/parser/*   (internal service; Pydantic schemas mirror api/parser-api.yaml)
 ```
 
-- **Models:** KMP `shared` is the source of truth; `api/*.yaml` is the derived HTTP contract; web types come from compiled JS declarations (`shared.d.mts`), backend/android use the JVM module natively.
+- **Models:** KMP `shared` is the source of truth; `api/schemas/*.json` (generated by `:shared:generateJsonSchemas`, committed, drift-guarded by `JsonSchemaGeneratorTest`) is the source for web types; `api/*.yaml` remains the HTTP contract spec. Web types come from `web/src/shared/types/generated/*.d.ts` (via `npm run generate:types`, re-exported through `@/shared/types`); backend/android use the JVM module natively.
 - **Web → Backend:** `httpClient.ts` adds `Authorization: Bearer <token>` from `localStorage`, talks to `/api/v1` (Ktor backend, not yet implemented).
 - **Parser:** scrapes schedule data into its own PostgreSQL DB (`uniplanner_parser`), serves it via `/api/v1/parser/*` on port 8000. Schedule is per academic group.
 - **UI text and error messages are Russian** throughout; identifiers are English.
@@ -160,15 +167,18 @@ Parser settings are read via `pydantic-settings` (`app/core/config.py`, global `
 
 ```bash
 # Root — Gradle aggregate tasks (group "ecampus")
-./gradlew showTasks          # list all available tasks
-./gradlew buildJsDev         # :shared → JS dev library → copy to web/src/shared/kmp/dto
-./gradlew buildJsProd        # same, production
-./gradlew buildAllDev        # full dev build (shared only for now)
-./gradlew cleanAll           # clean all build dirs + generated shared files in web
-./gradlew rebuildJsDev       # cleanWebKmp → copyJsToWebDev
+./gradlew showTasks            # list all root aggregate tasks
+./gradlew generateSchemas      # :shared:generateJsonSchemas → api/schemas/*.json (committed, drift-guarded)
+./gradlew buildAll             # full build + tests (:shared:build)
+./gradlew cleanAll             # clean + :shared:clean
+
+# Shared (KMP, JVM only) — JSON Schema generation & tests
+./gradlew :shared:generateJsonSchemas   # writes api/schemas/*.json (committed, drift-guarded by JsonSchemaGeneratorTest)
+./gradlew :shared:jvmTest               # JsonSchemaGeneratorTest (golden snapshots) + ModelValidatorsTest (43 tests)
 
 # Web
 cd web && npm install        # (or npm ci)
+npm run generate:types       # api/schemas/*.json → src/shared/types/generated/*.d.ts (committed)
 npm run dev                  # Vite dev server (default :5173)
 npm run build                # tsc -b && vite build
 npm run lint                 # eslint .
@@ -190,8 +200,5 @@ uvicorn app.main:app --reload   # serves :8000, docs at /docs
 - `web/src/shared/utils/index.ts` vs `shared/lib/utils.ts` duplication.
 - `parser/app/schemas/__init__.py` barrel is fully commented out; `db/models/__init__.py` is empty.
 - Parser DB columns are `snake_case` while API/Pydantic fields are `camelCase` (by design, to mirror the JSON contract).
-- Root README references `:shared:buildJsDevAndCopy` — the actual task name is `:shared:copyJsToWebDev`.
-- **KMP→web type bridge is half-manual (tech debt, violates the single-source principle):** generated `.d.mts` is unstable (missing `relatedLessonId`, class-form declarations), some models lack `@JsExport` (`LoginRequest`/`LoginResponse`/`RegisterRequest`, `UniversityLoginRequest`), so web hand-writes `TaskInputDto`/`NoteInputDto`, auth types and a `Task & { relatedLessonId? }` patch.
-- `web/src/shared/kmp/dto/` is gitignored — a fresh clone has no KMP types until `./gradlew :shared:copyJsToWebDev` is run.
-- `shared.mjs` runtime (serialization, validators, constants) is not imported by web — only type declarations are used.
-- Foundation plan to rework the bridge (KMP → JSON Schema → generated, structural, committed TS types): `thoughts/shared/plans/2026-08-03-kmp-foundation-plan.md`.
+- ✅ **DONE — foundation plan (KMP → JSON Schema → generated, structural, committed TS types):** `thoughts/shared/plans/2026-08-03-kmp-foundation-plan.md` — implemented; the bridge now works exactly this way (see Data Flow).
+- `api/*.yaml` is no longer drift-guarded against `shared` by tests (`OpenApiValidationTest` was deleted); the enforced contract is now the generated `api/schemas/*.json`.
