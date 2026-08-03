@@ -1,133 +1,133 @@
 ---
 date: 2026-08-03
 topic: "Доработка архитектурного фундамента: KMP как единый источник истины"
-status: draft
-execution_session: отдельная (не эта)
+status: validated
+execution_session: эта сессия
 ---
 
-# План: KMP как источник истины для сервера и всех клиентов
+# План: KMP как источник истины для сервера и всех клиентов (ФИНАЛ)
 
 ## Цель
 
-Довести до идеала принцип, зафиксированный в `ARCHITECTURE.md` (раздел **Design Principles**): **KMP `shared` — единый источник истины моделей, DTO и контрактов API** для сервера (`backend`) и всех клиентов (`web`, будущий `android`). Главный фокус — надёжный и оптимальный мост KMP→web, потому что для `backend`/`android` shared — нативный Kotlin-модуль (JVM/Android targets), а web — единственный не-Kotlin потребитель, которому нужна генерация.
+Довести до идеала принцип из `ARCHITECTURE.md` (Design Principles): **KMP `shared` — единый источник истины моделей, DTO и контрактов API** для сервера (`backend`) и всех клиентов (`web`, будущий `android`). Главный фокус — надёжный мост KMP→web, потому что `backend`/`android` потребляют shared нативно (JVM), а web — единственный не-Kotlin потребитель.
 
-## Текущее состояние (факты, проверены)
+## Решения, принятые на старте сессии (закрытые вопросы)
 
-### Как устроено сейчас
+1. **Генератор JSON Schema — кастомный, на `serializer().descriptor`** (нативный механизм kotlinx.serialization, ноль новых зависимостей). Отклонены библиотеки: третья-сторонние генераторы не поддерживаются/непрозрачны; Kompendium завязан на Ktor — оверкилл.
+2. **OpenAPI:** paths остаются ручными; `components.schemas` → внешний `$ref` на сгенерированные `api/schemas/*.json`. Мастер-спека бампается до **openapi 3.1.0** (валидны `type: ["T","null"]` и `anyOf` c `type: null`).
+3. **Сгенерированные артефакты коммитятся в git:** `api/schemas/*.json` — да; `web/src/shared/types/generated/*.d.ts` — да; `shared.mjs`/`shared.d.mts` — удаляются (JS-таргет больше не нужен).
+4. **Parser — независимый микросервис, ВНЕ KMP-контура.** Никакой генерации Pydantic. `api/parser-api.yaml` — его собственный контракт, остаётся рукописным. Этап 5 исходного плана отменён.
+5. **ajv-валидация в web — откладывается** (эта итерация: типы-only; валидаторы остаются в KMP для JVM-потребителей).
+6. **Guard рассинхрона:** CI-регенерация + `git diff --exit-code`. Старый `OpenApiValidationTest` (проверял валидаторы на хардкоде, YAML не читал) перерождается в `JsonSchemaGeneratorTest` с golden-снимками.
 
-- `shared/`: Kotlin 2.3.0, targets **jvm** + **js(IR)**; `@Serializable` + `@JsExport` data-классы; `ApiConstants.kt` (пути, `API_BASE_URL` из BuildConfig); `ModelValidators.kt`; `OpenApiValidationTest.kt` (сверка KMP ↔ `api/*.yaml`)
-- Доставка в web: Gradle-задачи `buildJsDev`/`copyJsToWebDev` копируют `shared.mjs` + `shared.d.mts` в `web/src/shared/kmp/dto/` (**gitignored**)
-- Web: импортирует **только декларации** (`import type` через `@/shared/types → @shared/kmp → dto/shared.d.mts`); рантайм `shared.mjs` не используется
-- `api/*.yaml` — сейчас фактически второй источник («contract source of truth»), KMP его «зеркалит» + тест сверяет
+## Ключевое архитектурное решение: удаление JS-таргета
 
-### Проблемы тулчейна (tech debt)
+Аудит показал: web импортирует из Kotlin/JS **только декларации** (`import type`), рантайм `shared.mjs` не используется нигде. Значит Kotlin/JS-таргет — чистый балласт, порождающий все баги моста (нестабильный `.d.mts`, классы вместо структурных типов, потеря `relatedLessonId`, gitignored-артефакт). 
 
-1. **`.d.mts` нестабилен:** отсутствует `relatedLessonId` в `Task`/`Note` → ручной патч `Task & { relatedLessonId?: number }` в `web/src/shared/types/index.ts`
-2. **Классы вместо структурных типов:** Kotlin/JS генерирует `class Task { copy(...) ... }` — не проходит структурную проверку TS для литералов → ручные `TaskInputDto`/`NoteInputDto`
-3. **Нет `@JsExport`** у `LoginRequest`/`LoginResponse`/`RegisterRequest`/`UniversityLoginRequest` → ручные дубли в `web/src/entities/user/api/userApi.ts`
-4. **Gitignored артефакт:** свежий clone без прогона Gradle не имеет типов
-5. **Устаревшая документация:** README упоминает `:shared:buildJsDevAndCopy` (реально — `:shared:copyJsToWebDev`)
-6. **Рантайм мёртв:** сериализация/валидаторы/константы Kotlin для браузера не используются
-7. **Рассинхрон констант:** `gradle.properties apiBaseUrl` vs `web/.env VITE_API_BASE_URL`
+**Решение:** JS-таргет (`js(IR)`) удаляется из `shared`, вместе с ним — `@JsExport`-аннотации, копи-таски (`copyJsToWebDev/Prod`, `cleanWebKmp`, `rebuildJs*`) и JS-агрегаты корневого `build.gradle.kts`. Веб получает типы исключительно через JSON Schema → TS.
 
 ## Целевая архитектура
 
 ```
-shared/ApiModels.kt  (@Serializable, ЕДИНСТВЕННЫЙ источник)
+shared/ApiModels.kt (@Serializable, ЕДИНСТВЕННЫЙ источник)
    │
    ├─▶ backend (JVM) / android — нативный Gradle-модуль (уже так)
    │
-   ├─▶ JSON Schema (генерируется из kotlinx.serialization descriptors,
-   │     Gradle-таск :shared:generateJsonSchemas)  ← новый производный артефакт
-   │        ├─▶ web: json-schema-to-typescript (npm) → структурные TS-интерфейсы
-   │        │      → web/src/shared/types/generated/ (КОММИТИТСЯ в git)
-   │        ├─▶ (опц.) parser: datamodel-code-generator → Pydantic-схемы
-   │        └─▶ (опц.) web runtime: ajv-валидация ответов API
+   ├─▶ :shared:generateJsonSchemas (JavaExec → jvmMain main(), кастомный генератор)
+   │     ▼
+   │   api/schemas/*.json  (коммитится)
+   │     │  web: npm run generate:types (json-schema-to-typescript)
+   │     ▼
+   │   web/src/shared/types/generated/*.d.ts  (коммитится)
+   │     │  barrel web/src/shared/types/index.ts
+   │     ▼
+   │   ~27 модулей web (import type из '@/shared/types') — без ручных дублей
    │
-   └─▶ api/*.yaml — схемы компонентов из сгенерированных JSON Schema
-        (paths остаются ручными; OpenApiValidationTest — guard рассинхрона)
+   └─▶ api/backend-api.yaml: components.schemas → $ref: './schemas/<Name>.json'
+        (paths ручные; мастер openapi.yaml 3.1.0 агрегирует как раньше)
 ```
 
-### Почему именно JSON Schema-мост (а не починка `.d.mts`)
+## Текущее состояние (факты, проверены при аудите)
 
-- **Структурные TS-типы** (интерфейсы) вместо классов Kotlin/JS — решает проблему №2 раз и навсегда
-- **Без Kotlin/Gradle на машине web-разработчика:** генерация — npm-скрипт (`generate:types`)
-- **Один артефакт — много потребителей:** TS, Pydantic, OpenAPI, ajv-валидация
-- **Генератор без внешних зависимостей:** обход `serializer().descriptor` — нативный механизм kotlinx.serialization
-- **Коммит сгенерированных типов в git** — свежий clone работает без прогона Gradle (проблема №4)
+- `shared/`: Kotlin 2.3.0, targets **jvm + js(IR)**; 21 модель `@Serializable`; у `RegisterRequest`/`LoginRequest`/`LoginResponse`/`UniversityLoginRequest`/`ErrorResponse` нет `@JsExport`.
+- Web-мост: `web/src/shared/kmp/index.ts` (tracked) → `dto/shared.d.mts` (gitignored, артефакт от 24.06, устарел). Ручные дубли: `LoginRequest/RegisterRequest/LoginResponse` в `userApi.ts`, `TaskInputDto` в `taskApi.ts`, `NoteInputDto` в `noteApi.ts`, патч `Task & { relatedLessonId? }` в `types/index.ts`.
+- `api/backend-api.yaml`: схемы рукописные, **нет `relatedLessonId`** в Task/Note (в shared есть — уже рассинхрон); нет схем/путей `/university-auth/*`, `/parser/lessons`, нет `ParserSyncResponse`.
+- `api/parser-api.yaml`: контракт парсера (не трогаем, кроме сверки на совместимость с новыми shared-моделями не требуется).
+- `OpenApiValidationTest.kt`: проверяет только `ModelValidators` на хардкоде — guard'ом не является.
+- Корневой `build.gradle.kts`: агрегаты `buildJsDev/Prod`, `buildAll*`, `rebuildJs*`, `cleanAll` — все зависят от JS-копирования.
+- `web/package.json`: нет `json-schema-to-typescript`, нет скрипта `generate:types`. `web/tsconfig.app.json`: alias `@shared/*` → `./src/shared/*`.
 
 ## Этапы
 
-### Этап 0. Принцип зафиксирован ✅
-- Сделано в этой сессии: `ARCHITECTURE.md` — раздел Design Principles, актуализация shared/web/backend/Data Flow/Known Gaps
-
-### Этап 1. Исследование тулчейна (spike)
-- [ ] Проверить стабильность `.d.mts` на Kotlin 2.3.0 — зафиксировать баги (issue-отчёт)
-- [ ] Выбрать способ генерации JSON Schema: **кастомный генератор на `descriptor`** (рекоменд.) vs библиотека; проверить покрытие: nullable, enum (приоритет 1..5, статусы), строки-даты (ISO), вложенные классы (`User` в `LoginResponse`), списки
-- [ ] Проверить вывод `json-schema-to-typescript` (npm) на наших моделях: именование, `$ref`, комментарии, `enum` → union-типы
-- [ ] Решить: коммитить ли сгенерированные TS-типы (рекомендация: **да**) и JSON Schema (рекомендация: **да**)
+### Этап 1. Генератор JSON Schema в shared ✅ (спайк выполнен анализом)
+- [x] Способ генерации выбран: кастомный обход `serializer().descriptor`
+- [x] Покрытие подтверждено по моделям: nullable (`String?`), default-значения (`isOptional` → не-required), вложенные классы (`LoginResponse.user: User` → инлайн), списки (`ParserSyncRequest.groups: List<String?>`), `Int`/`String`/`Boolean`, enum-kind (задел)
+- [x] Вывод `json-schema-to-typescript` на наших моделях: инлайн-объекты без `title` → анонимные объектные типы (структурно корректно); корневые схемы с `title` = имя модели → именованные интерфейсы
 
 ### Этап 2. Генератор JSON Schema в shared
-- [ ] Реализовать `JsonSchemaGenerator` (jvmMain или commonMain): обход `serializer().descriptor` всех моделей → `api/schemas/*.json`
-- [ ] Gradle-таск `:shared:generateJsonSchemas` + агрегат в корневом `build.gradle.kts`
-- [ ] Тест: для каждой `@Serializable` модели генерируется валидная схема; golden-снимки на 2–3 моделях
-- **Критерий готовности:** `./gradlew :shared:generateJsonSchemas` — все модели покрыты
+- [ ] `shared/src/commonMain/kotlin/ru/uniplanner/shared/schema/JsonSchemaGenerator.kt` — чистый обход дескриптора → JSON-строка (без IO, тестируемо в commonTest):
+  - класс → `type: object`, `properties`, `required` (не-optional и не-nullable), `title` = короткое имя
+  - nullable → `type: ["T", "null"]`; список → `type: array, items`; enum-kind → `enum`
+  - вложенные `@Serializable` классы → инлайн (без `$defs`), без `title` (анонимные в TS)
+- [ ] `shared/src/jvmMain/kotlin/ru/uniplanner/shared/schema/GenerateJsonSchemasMain.kt` — `main(args)` с выходной директорией; пишет `api/schemas/<Name>.json` (pretty-print, стабильный порядок ключей)
+- [ ] `shared/build.gradle.kts`: удалить `js(IR)` таргет, opt-in `ExperimentalJsExport`, таски `buildJsDev/Prod`, `copyJsToWebDev/Prod`, `cleanWebKmp`, `rebuildJs*`; добавить таск `generateJsonSchemas` (JavaExec, класс `...GenerateJsonSchemasMainKt`, аргумент — `api/schemas`); jvmMain-зависимости не нужны (только stdlib+serialization)
+- [ ] Удалить `@JsExport` из всех моделей (`ApiModels.kt`), добавить `ParserSyncResponse` (по дизайну university-sync: `group`, `startDate`, `endDate`, `syncedLessons`/`status` — точные поля согласует executor с дизайном)
+- [ ] `shared/src/commonTest/.../JsonSchemaGeneratorTest.kt` (заменяет `OpenApiValidationTest.kt`): для каждой модели — генерация валидного JSON, структурные проверки (nullable, required, вложенность, список); golden-снимки на `Task`, `LoginResponse`, `ParserSyncRequest`; старые проверки `ModelValidators` переносятся как есть
+- **Критерий готовности:** `./gradlew :shared:generateJsonSchemas` пишет 22 файла (21 + `ParserSyncResponse`); `./gradlew :shared:jvmTest` зелёный
 
 ### Этап 3. Генерация TS-типов для web
-- [ ] npm-скрипт `generate:types` (json-schema-to-typescript) → `web/src/shared/types/generated/`
-- [ ] Удалить ручные дубли: auth-типы из `userApi.ts`, `TaskInputDto`/`NoteInputDto`, патч `relatedLessonId`; удалить мост `@shared/kmp` (`.d.mts`)
-- [ ] Обновить alias/tsconfig; мигрировать импорты (~27 модулей web)
-- [ ] `.gitignore`: убрать `web/src/shared/kmp/dto/`-исключение для новых типов (коммитим); `shared.mjs` больше не копируется в web
-- **Критерий готовности:** tsc clean; `npm run test` green; lint clean; ноль `import ... from '@shared/kmp'`; grep не находит дублей моделей
+- [ ] `web/package.json`: devDependency `json-schema-to-typescript`; скрипт `"generate:types": "json2ts -i '../api/schemas/*.json' -o 'src/shared/types/generated'"` (флаги CLI сверить по `json2ts --help` на момент реализации)
+- [ ] Сгенерировать `web/src/shared/types/generated/*.d.ts` (коммитится)
+- [ ] Переписать barrel `web/src/shared/types/index.ts`: реэкспорт из `./generated` всех моделей (включая `TaskInput`, `NoteInput`, `RegisterRequest`, `LoginRequest`, `LoginResponse`, `CaptchaChallengeResponse`, `UniversityLoginRequest`, `UniversityLinkStatus`, `ValidationResult`, `ParserSyncResponse`); **удалить патч `relatedLessonId`** (теперь генерируется); удалить импорт из `@shared/kmp`
+- [ ] Удалить ручные дубли: `LoginRequest/RegisterRequest/LoginResponse` из `userApi.ts`, `TaskInputDto` из `taskApi.ts`, `NoteInputDto` из `noteApi.ts` (перейти на типы из `@/shared/types`)
+- [ ] Удалить мост: `web/src/shared/kmp/index.ts` (git rm) + директорию `web/src/shared/kmp/dto/` (с диска); убрать alias `@shared` из `vite.config.ts` и `tsconfig.app.json` (если больше не используется)
+- [ ] `.gitignore`: удалить строку `web/src/shared/kmp/`; убедиться, что `api/schemas/` и `generated/` не игнорируются
+- **Критерий готовности:** `tsc -b`, `vitest run`, `lint`, `vite build` зелёные; `grep -r "@shared/kmp" web/src` пуст; `grep -ri "TaskInputDto\|NoteInputDto" web/src` пуст
 
 ### Этап 4. OpenAPI из KMP
-- [ ] Схемы компонентов в `api/*.yaml` — через `$ref` на сгенерированные JSON Schema (или автосборка `components.schemas`)
-- [ ] Дополнить спеки недостающим: `/university-auth/*`, `/parser/lessons` (по дизайну `2026-08-03-university-sync-design.md`)
-- [ ] `OpenApiValidationTest`: переориентировать на проверку консистентности KMP ↔ OpenAPI (сгенерированные схемы идентичны)
-- **Критерий готовности:** тест сверки зелёный после любого изменения моделей
+- [ ] `api/backend-api.yaml`: заменить рукописные схемы на `$ref: './schemas/<Name>.json'`; добавить схемы-рефы для `Institute`, `Specialty`, `AcademicGroup`, `Teacher`, `Room`, `ParserStatusResponse`, `ParserSyncRequest`, `CaptchaChallengeResponse`, `UniversityLoginRequest`, `UniversityLinkStatus`, `ParserSyncResponse`
+- [ ] Добавить недостающие paths: `/university-auth/captcha|login|status|link`, `/parser/lessons` (по `2026-08-03-university-sync-design.md`)
+- [ ] `api/openapi.yaml`: бамп `openapi: 3.1.0`; рефы на новые схемы/пути
+- [ ] `api/parser-api.yaml`: НЕ трогаем (контракт независимого микросервиса)
+- **Критерий готовности:** спеки валидны (проверить парсером/редактором), `relatedLessonId` присутствует, схемы — рефы на сгенерированные файлы
 
-### Этап 5. (опц.) Parser: Pydantic из JSON Schema
-- [ ] Оценить `datamodel-code-generator` (JSON Schema → Pydantic) против ручных `parser/app/schemas/*.py`
-- [ ] Решение: внедрять или оставить ручными + тест сверки
-- **Решение о включении** — на старте сессии (см. Открытые вопросы)
-
-### Этап 6. (опц.) Рантайм-валидация web
-- [ ] ajv + JSON Schema на ответах API (или только на входе форм)
-- **Решение о включении** — на старте сессии
-
-### Этап 7. CI и документация
-- [ ] GitHub Actions: шаг генерации (`generateJsonSchemas` + `generate:types`) + `git diff --exit-code` — предотвращает рассинхрон
-- [ ] Обновить README (команды вместо устаревшей `buildJsDevAndCopy`), ARCHITECTURE.md Data Flow, `.gitignore`
-- [ ] Убрать/закоммитить старый `web/src/shared/kmp/dto/` (по решению из Этапа 1)
+### Этап 5. CI и документация
+- [ ] `.github/workflows/schema-sync.yml`: setup-java 21 + setup-node 22 → `./gradlew :shared:generateJsonSchemas` → `cd web && npm ci && npm run generate:types` → `git diff --exit-code` (guard дрейфа) → `npm run build` + `npm run test` + `npm run lint`
+- [ ] Корневой `build.gradle.kts`: убрать JS-агрегаты (`buildJsDev/Prod`, `rebuildJs*`), `buildAllDev` → `:shared:generateJsonSchemas` (+ web generate:types в doLast/доке), обновить `showTasks`
+- [ ] `README.md`: заменить `buildJsDevAndCopy`/`.d.ts`-инструкции на новый флоу: поменял модель → `./gradlew :shared:generateJsonSchemas` → `cd web && npm run generate:types`
+- [ ] `ARCHITECTURE.md`: Design Principles (web — через сгенерированные TS, не `.d.mts`), Directory Structure (`api/schemas/`, `web/src/shared/types/generated/`, удалить `kmp/dto`), Data Flow, Known Gaps (вычеркнуть закрытые, добавить «JS-таргет удалён», «parser — независимый, вне KMP»)
+- **Критерий готовности:** свежий clone → `npm ci && npm run build && npm test` без прогона Gradle; доки не упоминают `copyJsToWebDev`
 
 ## Definition of Done (общий)
 
-- [ ] Ноль ручных TS-дублей моделей в web
-- [ ] Демо: изменение поля в `shared/ApiModels.kt` → `npm run generate:types` → тип обновлён без ручных правок
-- [ ] `tsc` / `npm run test` / `npm run build` / `npm run lint` — зелёные
+- [ ] Ноль ручных TS-дублей моделей в web (grep-проверки из Этапа 3)
+- [ ] Демо: изменение поля в `shared/ApiModels.kt` → `./gradlew :shared:generateJsonSchemas && npm run generate:types` → тип обновлён без ручных правок
+- [ ] `tsc` / `npm run test` / `npm run build` / `npm run lint` — зелёные; `./gradlew :shared:jvmTest` — зелёный
 - [ ] Свежий clone: web собирается без прогона Gradle
-- [ ] `api/*.yaml` консистентен с KMP (автотест)
+- [ ] `api/backend-api.yaml` схемы = сгенерированные `api/schemas/*.json` (структурно, через $ref); CI-diff-guard зелёный
+- [ ] JS-таргет и все артефакты `.mjs`/`.d.mts` удалены из репозитория
+
+## Вне скоупа (осознанно)
+
+- Parser: Pydantic-генерация из KMP — НЕ делаем (независимый микросервис, владеет своим контрактом)
+- ajv-валидация в web — отложена
+- Починка/добавление `/parser/lessons` и `/auth/*` в самом парсере — отдельная работа (university-sync)
+- Реализация web-фичи «Университет» — отдельная работа (после этого фундамента)
 
 ## Риски
 
 | Риск | Митигация |
 |---|---|
-| Кастомный генератор JSON Schema: краевые случаи (enum, null, default, вложенность) | Юнит-тесты на каждый кейс + golden-снимки |
-| `json-schema-to-typescript`: неожиданный вывод (имена, `$ref`, union vs enum) | Spike в Этапе 1 ДО миграции |
-| Миграция ~27 модулей web — механические правки | Поэтапно, с tsc после каждого блока |
-| Решение «коммитить генерированное» — разрастание diff'ов | Зафиксировать в начале; CI-diff-guard |
-| Потеря рантайм-возможностей Kotlin (валидаторы) | Валидаторы остаются в KMP для JVM-потребителей; web получает ajv (опц.) |
-
-## Открытые вопросы (решить на старте сессии)
-
-1. **Генератор JSON Schema:** кастомный на `descriptor` vs библиотека (какая?) — spike ответит
-2. **OpenAPI:** схемы полностью из KMP или ручные paths + генерируемые схемы? (рекомендация: paths ручные, схемы — из KMP)
-3. **Коммитить ли сгенерированные артефакты** в git (TS-типы — да; JSON Schema — да; `shared.mjs` — нет)
-4. **Parser** включать в KMP-контур (Pydantic-генерация) в этой итерации или позже?
-5. **Рантайм-валидация web** (ajv) — нужна в этой итерации или только типы?
+| Кастомный генератор: краевые случаи дескрипторов (nullable-обёртки, вложенность, enum) | Юнит-тесты на каждый кейс + golden-снимки |
+| `json-schema-to-typescript`: неожиданный вывод (имена, инлайн-объекты) | Спайк подтверждён на наших моделях; при расхождении — точечные правки схемы |
+| Удаление JS-таргета ломает сборку (остаточные ссылки на `ExperimentalJsExport`) | Поэтапно: сначала генератор + удаление тасков, затем чистая сборка `jvmTest` |
+| `openapi: 3.1.0` — совместимость инструментов | В репо нет OpenAPI-кодгена, потребители — люди/редакторы; откат на 3.0 + `nullable: true` — запасной путь |
+| Миграция импортов web — механические правки | Barrel-файл сохраняет путь `@/shared/types`; правятся только 3 API-файла с дублями |
+| Решение «коммитить генерированное» — разрастание diff'ов | Зафиксировано; CI-diff-guard не даёт рассинхрону прокрасться |
 
 ## Ссылки
 
-- Принцип: `ARCHITECTURE.md` → Design Principles, Known Gaps (обновлены 2026-08-03)
-- Мост сейчас: `web/src/shared/types/index.ts`, `web/src/shared/kmp/`, `shared/build.gradle.kts`
+- Принцип: `ARCHITECTURE.md` → Design Principles, Known Gaps
 - Дизайн фичи, которому нужны типы: `thoughts/shared/designs/2026-08-03-university-sync-design.md`
+- Текущий мост (удаляется): `web/src/shared/types/index.ts`, `web/src/shared/kmp/`, `shared/build.gradle.kts`
+- Оценка паттерна и индустриальные кейсы: анализ сессии 2026-08-03 (Philo, Block/Trailblaze, JetBrains)
