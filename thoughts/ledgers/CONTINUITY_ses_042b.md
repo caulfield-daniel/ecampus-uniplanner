@@ -1,70 +1,107 @@
 ---
 session: ses_042b
-updated: 2026-08-03T18:10:29.056Z
+updated: 2026-08-03T21:16:09.959Z
 ---
 
 # Session Summary
 
 ## Goal
-Выполнить план рефакторинга фронтенда `web/` проекта **ecampus-uniplanner** на чистую FSD-архитектуру: направленность импортов через public API, инкапсуляция HTTP/состояния, DI через фабрики, багфиксы таймзоны, тест-инфраструктура. (План: `thoughts/shared/plans/2026-08-01-web-fsd-refactor.md`, дизайн: `thoughts/shared/designs/2026-08-01-web-fsd-refactor-design.md`)
-
-**Успех достигнут**: 7 фаз выполнены, 9 коммитов, `tsc` чистый, `npm run test` → **85/85 passed (22 файла)**, `npm run build` OK, `npm run lint` чистый, рабочий каталог чист (кроме 3 untracked-файлов).
+Довести до идеала архитектурный фундамент проекта ecampus-uniplanner: зафиксировать KMP `shared` как единый источник истины моделей/типов/контрактов для всех клиентов, заменив хрупкий Kotlin/JS `.d.mts`-мост в web на генерацию структурных TS-типов через JSON Schema (descriptor → JSON Schema → TS), и проверить фактами, что план фундамента действительно исполнен.
 
 ## Constraints & Preferences
-- Стек: React 19.2 + Vite 8.0.0-beta.13 (override) + TS 5.9 + TanStack Query 5 + shadcn/ui + Tailwind v4 + vitest ^4.1.10 + msw ^2.15.0 + jsdom ^28.1.0
-- Только named exports; type-only импорты (verbatimModuleSyntax); только interfaces (erasableSyntaxOnly); комментарии на русском, идентификаторы на английском
-- Проверка типов: **`npx tsc -p tsconfig.app.json --noEmit`** (голый `npx tsc --noEmit` на solution-конфиге ничего не проверяет!)
-- Тесты: явные импорты из vitest (globals: false), fireEvent (userEvent НЕ установлен), `afterEach(cleanup)` вручную
-- UI-тексты на русском; удаление через AlertDialog (ADR-5); глобальный toast ошибок мутаций в queryClient
-- Коммиты после каждой фазы с сообщениями из плана
+- KMP `shared` — единственный источник истины; никаких ручных TS-дублей моделей в web (правки — только в `shared/ApiModels.kt`, затем `./gradlew :shared:generateJsonSchemas` + `npm run generate:types`)
+- Kotlin-потребители (backend JVM, будущий android) потребляют shared нативно; web — единственный не-Kotlin потребитель
+- Parser — независимый микросервис ВНЕ KMP-контура; `api/parser-api.yaml` остаётся рукописным
+- FSD-слои (entities/features/widgets/pages), public API-barrel'ы, `@/shared/types` alias сохранён
+- Web ходит только в backend (`:8080/api/v1`); парсер (`:8000`) — внутренний сервис
+- UI-тексты на русском; shadcn/ui; TanStack Query; sonner toasts
+- Пароль ИС никогда не хранится на web
+- Сгенерированные артефакты коммитятся в git (`api/schemas/*.json`, `web/src/shared/types/generated/*.d.ts`); `shared.mjs`/`.d.mts` удалены, JS-таргет убран
 
 ## Progress
-
 ### Done
-- [x] **Фаза 0** — env: `VITE_API_BASE_URL=http://localhost:8080/api/v1`; alias `@shared`→`./src/shared`; удалены пустые barrel (constants/utils/validators) и `separator.tsx`; deps: sonner, @radix-ui/react-alert-dialog, vitest, msw, jsdom, @testing-library/*
-- [x] **Фаза 1** — `shared/lib/tokenStorage.ts` (стор над localStorage, ключ **'auth_token'**, get/set/clear/subscribe); `shared/api/httpClient.ts` — `createHttpClient({baseUrl, getToken})` + default `apiClient`; `shared/api/queryClient.ts` — `createQueryClient({staleTime, retry})` + mutations onError→toast; `shared/lib/date.ts` — timezone-safe `toIsoDate`/`toLocalInputValue`/`fromLocalInputValue`/`formatWeekday`; `shared/ui/alert-dialog.tsx`, `empty-state.tsx`; `<Toaster position="top-right" />` в main.tsx
-- [x] **Фаза 2** — `entities/user/`: api/userApi.ts (LoginRequest/RegisterRequest/LoginResponse, me/login/register), model/queries.ts (userKeys.me, useMeQuery, useLoginMutation, useRegisterMutation), model/user-context.tsx (UserProvider через useSyncExternalStore, useAuth); `app/ErrorBoundary.tsx`, `app/providers/index.tsx` (AppProviders: QueryClientProvider→ErrorBoundary→UserProvider); **удалён `app/providers/AuthProvider.tsx`**; обновлены импорты useAuth в Sidebar/TodayDashboard/router/SchedulePage; LoginForm переписан на useLoginMutation/useRegisterMutation
-- [x] **Фаза 3** — `entities/task/model/deadline.ts` (deadlineUrgency, DeadlineUrgency); TaskRow презентационный `{task, onToggle, onClick?}`; barrel-ы `entities/{task,note,lesson}/index.ts`; `scheduleKeys` в lesson queries (groups, list(group,from,to))
-- [x] **Фаза 4** — `features/task/task-list/TaskList.tsx` (CRUD + AlertDialog удаления + EmptyState, prop `lessonId?`), `features/note/note-list/NoteList.tsx`; TaskForm багфикс: `toLocalInputValue(new Date(task.deadline))` на pre-fill, `fromLocalInputValue(deadline).toISOString()` на submit; NoteForm импорты через barrel; barrel-ы `features/*/index.ts` (включая QuickTaskDialog, WeekSwitcher); LoginForm.test (6 тестов)
-- [x] **Фаза 5** — TodayDashboard: `useToggleTaskMutation` + `onToggle`, импорты из `@/entities/*`; LessonDetailSheet: импорты+onToggle (Radix Tabs активируется на **mouseDown**, не click); TasksPage/NotesPage — тонкие обёртки `<TaskList/>`/`<NoteList/>`; Sidebar.test (4), router.test (3)
-- [x] **Фаза 6** — `vitest.config.ts` (jsdom, setupFiles, globals:false) + `vitest.setup.ts` (**`@testing-library/jest-dom/vitest`** — не просто jest-dom; matchMedia/ResizeObserver mock; глобальный `vi.mock('sonner')`); `src/mocks/handlers.ts` (13 MSW-хендлеров с префиксом `API_BASE_URL` из env, фабрики makeUser/makeTask/makeNote/makeLesson, `resetDb()`) + `server.ts` + `index.ts`; `app/integration.test.tsx` (3 теста: login flow→token в localStorage, auth/me→user в контексте через Probe, register flow); починен `entities/user/model/queries.test.ts` (react-query v5 передаёт context-объект 2-м аргументом в mutationFn)
-- [x] **Финальная проверка** — test 85/85, build OK, lint чистый; 3 `react-refresh/only-export-components` подавлены точечными `eslint-disable-next-line` (button.tsx, badge.tsx, user-context.tsx)
+- [x] Полный FSD-рефакторинг web (7 фаз, 9 коммитов от `bd1cd80` до `25cb8db`): 85/85 тестов, build/lint/tsc зелёные, 0 импортов из нижних слоёв в верхние, удалён единственный useEffect (AuthProvider→UserProvider+useSyncExternalStore)
+- [x] Брейншторм по фичам/багам + дизайн университетской синхронизации: `thoughts/shared/designs/2026-08-03-university-sync-design.md` (закоммичен)
+- [x] Аудит: backend (скомпилированный Spring Boot) уже содержит контур `/university-auth/captcha|login|status|link` + шифрованные cookies; у парсера этих эндпоинтов нет — разрыв контрактов (задокументировано в дизайне)
+- [x] Дизайн переработан в KMP-first (пользователь указал: «зеркалить» = нарушение принципа) — типы приезжают через JSON Schema, не TS-дублями
+- [x] `ARCHITECTURE.md` обновлён: добавлен раздел **Design Principles** (KMP — источник истины, api/*.yaml — производный контракт), исправлены устаревшие факты (backend=Spring Boot без исходников, AuthProvider→providers/, структура web/src/shared/), переработана Data Flow-диаграмма, Known Gaps перечисляют весь тулчейн-долг
+- [x] Создан план: `thoughts/shared/plans/2026-08-03-kmp-foundation-plan.md` (закоммичен, статус `validated`, исполнялся в «этой сессии»)
+- [x] **Верификация фактов — установлено, что план уже ИСПОЛНЕН в этой же сессии** (судя по состоянию репо):
+  - `shared/build.gradle.kts`: JS-таргет удалён; есть `generateJsonSchemas` (JavaExec, `:generate` task)
+  - Корневой `build.gradle.kts`: `generateSchemas`/`buildAll`/`cleanAll`/`showTasks` в группе "ecampus"; `buildAll` = `:shared:build`
+  - `web/package.json`: скрипт `generate:types` + зависимость `json-schema-to-typescript ^15.0.4`
+  - `web/scripts/generate-types.mjs` существует
+  - `api/openapi.yaml`: **openapi: 3.1.0**, уже содержит `/university-auth/captcha|login|status|link` и `/parser/lessons` + `ParserSyncResponse`
+  - `api/schemas/*.json`: **23 файла закоммичены** (Task/Note/NoteInput содержат `relatedLessonId`; есть ParserSyncResponse, UniversityLoginRequest.json и т.д.)
+  - `web/src/shared/types/generated/*.d.ts`: **24 файла закоммичены** (LoginRequest/LoginResponse/RegisterRequest/UniversityLoginRequest/ParserSyncResponse...)
+  - `web/src/shared/types/index.ts`: **переписан** — re-export из `./generated` (структурные TS-типы), комментарий «ручные правки запрещены», `@shared/kmp`-мост мёртв (grep: 0 вхождений `@shared/kmp`; `TaskInputDto`/`NoteInputDto` — только в комментарии теста `NoteForm.test.tsx:1,53`)
+  - `web/vite.config.ts`: alias `@shared` удалён (осталось только 1 вхождение `alias:`)
+  - `.gitignore`: исключение для `kmp/` удалено (grep: «NO kmp in .gitignore»); `git status` чистый
+  - README.md, CODE_STYLE.md: обновлены под новый тулчейн (команды `:shared:generateJsonSchemas` + `npm run generate:types`, запрет ручных правок generated/)
+  - `@JsExport` полностью удалён из ApiModels.kt (grep: 0 вхождений); добавлены `ParserSyncResponse`, `CaptchaChallengeResponse`, `UniversityLoginRequest`, `UniversityLinkStatus`
+  - `shared/src/commonTest/`: `OpenApiValidationTest.kt` **УДАЛЁН** (ENOENT), заменён на `JsonSchemaGeneratorTest.kt` + остался `ModelValidatorsTest.kt`
+- [x] Оба коммита выполнены: `docs: KMP as single source of truth + foundation plan`, `docs(design): KMP-first typing for university sync (no TS mirrors)`
 
 ### In Progress
-- (none) — все фазы плана завершены
+- [ ] Завершение верификации плана фактами — последний невыполненный пункт: **CI-workflow (.github/workflows/) отсутствует (`glob` вернул "No files found")** — в плане Этап 7 требует GitHub Actions с регенерацией + `git diff --exit-code`, но его нет в репозитории
 
 ### Blocked
 - (none)
 
 ## Key Decisions
-- **`auth_token` вместо `token`** в localStorage: старый AuthProvider использовал 'token' — миграция в фазе 2, старый ключ остался в localStorage пользователей (тостер не сброшен, но это безвредно)
-- **login/register НЕ в контексте**: LoginForm вызывает useLoginMutation/useRegisterMutation напрямую, onSuccess → tokenStorage.set + invalidate me; юзер подтягивается через useMeQuery
-- **Глобальный toast ошибок мутаций** в createQueryClient (mutations.onError) — локальный error в формах оставлен (дублирование приемлемо)
-- **Удаление через AlertDialog** (ADR-5) — подтверждение перед delete-мутацией
-- **enable-фикс для useTasksQuery/useNotesQuery НЕ сделан**: LessonDetailSheet-агент подтвердил, что `enabled: Boolean(lessonId)` отсутствует в `entities/task/model/queries.ts` и `entities/note/model/queries.ts` (при lessonId=undefined queryFn всё равно вызывается) — координатор отложил решение «отдельно»; НЕ выполнено до конца сессии
-- **sonner@2**: `import 'sonner/style.css'` не существует (exports map: только "." и "./dist/styles.css"), CSS инжектится рантаймом — импорт не нужен
-- **MSW-хендлеры строятся от той же API_BASE_URL, что и клиент** (иначе pathname не совпадает)
+- **Кастомный генератор JSON Schema на `serializer().descriptor`** (в `shared/.../schema/JsonSchemaGenerator.kt`), а не Kotlin/JS `.d.mts`: `.d.mts` генерирует классы (не структурные TS-интерфейсы) — из-за этого требовались ручные `TaskInputDto`/`NoteInputDto`; тулчейн нестабилен (терял `relatedLessonId`), и `@JsExport` забывался вручную. JSON Schema даёт структурные интерфейсы, работает без Gradle на машине web-разработчика, коммитится в git
+- **JS-таргет и `shared.mjs`/`.d.mts` удалены**: рантайм Kotlin в браузере не использовался (только `import type`); чистый балласт. Если когда-нибудь понадобится Kotlin-логика в браузере — вернуть js-таргет осознанно
+- **Сгенерированные артефакты коммитятся в git**: `api/schemas/*.json` (да), `web/src/shared/types/generated/*.d.ts` (да) — свежий clone работает без прогона Gradle
+- **OpenAPI 3.1.0** (валидны `type: ["T","null"]` и `anyOf`); paths ручные, `components.schemas` — внешний `$ref` на `api/schemas/*.json`
+- **Parser вне KMP-контура**: без генерации Pydantic; `parser-api.yaml` рукописный (этап 5 исходного плана отменён)
+- **ajv-валидация в web отложена** (итерация «типы-only»); валидаторы остаются в KMP для JVM-потребителей
+- **Guard рассинхрона**: CI-регенерация + `git diff --exit-code` вместо удалённого `OpenApiValidationTest`
+- **Open Questions дизайна university-sync** (автоопределение группы, личное vs публичное расписание, задачи из расписания) — дефолты из дизайна: ручной выбор группы для v1, синхронизация по группе, задачи из расписания — отдельной фичей (пользователь не возразил)
 
 ## Next Steps
-1. Решить вопрос с `enabled`-фиксом в `useTasksQuery(lessonId?)`/`useNotesQuery(lessonId?)` — добавить `enabled: lessonId !== undefined` (или валидировать undefined в queryFn), если это в скоупе плана
-2. Разобраться с untracked-файлами: `ARCHITECTURE.md`, `CODE_STYLE.md`, `thoughts/ledgers/` — закоммитить или добавить в .gitignore по решению владельца
-3. Обновить план `thoughts/shared/plans/2026-08-01-web-fsd-refactor.md` — отметить выполнение фаз (если требуется по процессу)
-4. Проверить отображение старого localStorage-ключа 'token' (опционально: миграция/очистка при первом рендере)
-5. Ознакомить пользователя с итогами: 9 коммитов, финальное состояние (85 тестов, build, lint)
+1. **Завершить верификацию плана (текущая задача)**: составить итоговый отчёт «план исполнен» по фактам; единственный невыполненный пункт — **Этап 7, CI-workflow**: `.github/workflows/` отсутствует (нужно создать workflow с `./gradlew :shared:generateJsonSchemas` + `npm run generate:types` + `git diff --exit-code`)
+2. Проверить `shared/build.gradle.kts` на точное содержание `JsonSchemaGenerator` (видел только 1 строку: `val generateJsonSchemas by tasks.registering(JavaEx...`) — фрагмент обрезан при компакции контекста
+3. Если CI нужен — создать workflow (это единственный пункт DoD, который явно не закрыт); если решение «CI позже» — обновить план/DoD и явно закрыть верификацию
+4. После верификации — вернуться к реализации web-части university-sync (этап B дизайна `2026-08-03-university-sync-design.md`): типы уже в shared/generated, т.е. `entities/university` → `features/university/*` → `widgets/university` → `pages/university` → роутер `/university` + sidebar
+5. Доработка парсера (этап A): `/auth/captcha`, `/auth/login`, `/parser/lessons`, `/parser/groups` — отдельная работа; и вычистить `cookies.json` из git (проблема безопасности, зафиксирована в дизайне)
 
 ## Critical Context
-- **Ключевые команды**: `cd web && npx tsc -p tsconfig.app.json --noEmit`; `npm run test` (85 passed/22 файла); `npm run build`; `npm run lint`
-- **Коммиты (9)**: bd1cd80 (фаза 0) → 63e42b4 (фаза 1) → 42c211c (фаза 2) → 21b2a81 (фаза 3) → 3f8fd09 (фаза 4) → 2f9a325 + 8c87bcf (фаза 5) → adae73b (фаза 6) → 25cb8db (lint-подавления)
-- **Структура FSD**: `entities/{user,task,note,lesson}/` (api/, model/, ui/, index.ts), `features/task/task-list|task-form|quick-task-dialog`, `features/note/note-list|note-form`, `features/schedule/week-switcher`, `features/auth/login-form`, `widgets/{Layout,Sidebar,TodayDashboard,LessonDetailSheet}`, `pages/`, `app/{App,router,ErrorBoundary,providers}`, `shared/{api,lib,ui,types}`, `src/mocks/` (handlers/server/index)
-- **Типы данных**: Task/Note/Lesson/User из `@/shared/types` (НЕ переэкспортируются через entity-barrel — конвенция); DTO — из entity barrels (TaskInputDto, NoteInputDto, LoginRequest, RegisterRequest, LoginResponse)
-- **react-query v5 quirk**: mutationFn получает 2-й аргумент — объект контекста `{client, meta, mutationKey}`; в тестах проверять `toHaveBeenCalledWith(args, expect.anything())` для mutationFn, но НЕ для внутренних вызовов внутри mutationFn
-- **vitest**: `globals: false` → нужен именно `@testing-library/jest-dom/vitest`; `userEvent` не установлен — только fireEvent; `environment: 'jsdom'` из конфига (флаг не нужен)
-- **Баги, исправленные**: toIsoDate (UTC→локальная), formatWeekday (UTC-парсинг), TaskForm deadline (slice(0,16) UTC → локальные конвертеры), getWeekStart корректен (Пн–Вс)
-- **Известные нюансы тестов**: Radix Tabs — fireEvent.mouseDown (не click); jsdom не сбрасывает URL между тестами — нужен `window.history.replaceState`; `queryClient` — синглтон, нужен `.clear()` в beforeEach интеграционных тестов; MSW lifecycle: server.listen/close + resetDb + localStorage.clear
+- **Ключевое открытие**: план KMP-фундамента фактически уже исполнен в этой сессии (вероятно, параллельной/последующей сессией) — репозиторий чист, артефакты на месте, все решения плана отражены в коде. Пользователь попросил «перечитать план и проверить, что предлагалось проверить на фактах» — верификация почти завершена, осталось CI
+- Backend — скомпилированные классы Spring Boot, исходников нет; README называет его Ktor (расхождение зафиксировано в ARCHITECTURE.md)
+- `UniversityLoginRequest` был без `@JsExport` (теперь неактуально — @JsExport удалён целиком); `ParserSyncResponse { syncedLessons }` создан
+- Проблема безопасности: `parser/cookies.json` закоммичен в git (живая сессия ecampus.ncfu.ru) — не вычищена
+- Алиас `@shared` в vite.config удалён — web импортирует через `@/shared/types` (перейдя на `./generated`)
+- Тест `NoteForm.test.tsx` содержит упоминание `NoteInputDto` только в тексте/комментариях, не в коде — дублей типов в web нет
+- `gradlew :shared:generateJsonSchemas` + `npm run generate:types` — команды генерации (README.md, CODE_STYLE.md обновлены)
+- Дизайн university-sync: `api/openapi.yaml` уже содержит `/university-auth/*` и `/parser/lessons` — контракт готов, ждёт реализации в парсере и web
 
 ## File Operations
 ### Read
-- (none)
+- `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\ARCHITECTURE.md`
+- `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\thoughts\shared\plans\2026-08-03-kmp-foundation-plan.md`
+- `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\web\src\shared\types\index.ts`
+- `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\build.gradle.kts`
+- `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\shared\build.gradle.kts` (частично)
+- `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\web\package.json` (частично)
+- `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\web\vite.config.ts` (частично)
+- `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\shared\src\commonMain\kotlin\ru\uniplanner\shared\ApiModels.kt` (частично)
+- `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\shared\src\commonMain\kotlin\ru\uniplanner\shared\ModelValidators.kt` (частично)
+- `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\shared\src\commonMain\kotlin\ru\uniplanner\shared\ApiConstants.kt` (частично)
+- `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\shared\src\commonMain\kotlin\ru\uniplanner\shared\schema\JsonSchemaGenerator.kt` (фрагмент)
+- `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\README.md` (фрагмент)
+- `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\CODE_STYLE.md` (фрагмент)
+- `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\api\openapi.yaml` (фрагмент)
+- `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\api\backend-api.yaml` (фрагмент)
+- `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\web\src\features\note\note-form\NoteForm.test.tsx` (grep)
+- `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\.gitignore` (grep)
+- `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\gradlew` (grep)
 
 ### Modified
-- (none)
+- `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\ARCHITECTURE.md` (Design Principles, актуализация фактов, Data Flow, Known Gaps)
+- `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\thoughts\shared\designs\2026-08-03-university-sync-design.md` (KMP-first: убран «зеркалить», добавлен этап 0 + constraint, список компонентов)
+- `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\thoughts\shared\plans\2026-08-03-kmp-foundation-plan.md` (создан)
+
+### Commits
+- `docs(design): university IS sync feature design`
+- `docs(design): KMP-first typing for university sync (no TS mirrors)`
+- `docs: KMP as single source of truth + foundation plan`
