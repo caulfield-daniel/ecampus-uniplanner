@@ -26,7 +26,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const token = useSyncExternalStore(tokenStorage.subscribe, tokenStorage.get);
   const meQuery = useMeQuery(token);
   const user = meQuery.data ?? null;
-  const loading = meQuery.isPending;
+  // isLoading (а не isPending): у отключённого запроса (enabled=false при
+  // отсутствии токена) isPending в react-query v5 всегда true → приложение
+  // навсегда зависало бы на «Загрузка...». isLoading = isPending && isFetching,
+  // поэтому для отключённого запроса корректно false.
+  const loading = meQuery.isLoading;
 
   // Выход: чистим токен (уведомит подписчиков useSyncExternalStore) и кеш
   // react-query, чтобы данные прошлого пользователя не остались в памяти.

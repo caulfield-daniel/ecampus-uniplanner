@@ -42,6 +42,7 @@ beforeEach(() => {
   vi.mocked(useMeQuery).mockReturnValue({
     data: undefined,
     isPending: false,
+    isLoading: false,
   } as never);
 });
 
@@ -60,6 +61,7 @@ describe('UserProvider', () => {
     vi.mocked(useMeQuery).mockReturnValue({
       data: user,
       isPending: false,
+      isLoading: false,
     } as never);
 
     const { result } = renderHook(() => useAuth(), { wrapper });
@@ -76,6 +78,7 @@ describe('UserProvider', () => {
     vi.mocked(useMeQuery).mockReturnValue({
       data: { id: 1, email: 'test@example.com' },
       isPending: false,
+      isLoading: false,
     } as never);
 
     const { result } = renderHook(() => useAuth(), { wrapper });
@@ -84,5 +87,22 @@ describe('UserProvider', () => {
 
     expect(tokenStorage.clear).toHaveBeenCalledTimes(1);
     expect(clearSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('без токена loading=false (отключённый запрос не держит экран «Загрузка...»)', () => {
+    // Регрессионный тест: в react-query v5 у отключённого запроса (enabled=false)
+    // isPending всегда true, поэтому loading должен считаться через isLoading.
+    // Без токена useMeQuery отключён → loading должен быть false, иначе
+    // ProtectedRoute навсегда покажет «Загрузка...» вместо редиректа на /login.
+    vi.mocked(useMeQuery).mockReturnValue({
+      data: undefined,
+      isPending: true,
+      isLoading: false,
+    } as never);
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.user).toBeNull();
   });
 });
