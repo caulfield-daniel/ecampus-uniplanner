@@ -26,13 +26,12 @@ updated: 2026-08-06T22:16:07.811Z
 - [x] **Этап 3 — JVM/KMP**: `gradle/libs.versions.toml`: kotlin 2.3.0→2.4.10, kotlinxSerialization 1.8.1→1.11.0, buildConfig 5.3.5→6.0.10; wrapper 8.14.3→9.6.1 (через `JAVA_HOME=JDK21 ./gradlew wrapper --gradle-version 9.6.1` — при JDK 25 старый Kotlin 2.3.0 падал `IllegalArgumentException: 25.0.3`); `shared/build.gradle.kts`: JVM_21→JVM_25 + `runtimeDependencyFiles`→`runtimeDependencyFiles!!` (nullable в Kotlin 2.4). `:shared:jvmTest` ✅, `:shared:generateJsonSchemas` ✅ (drift 0). Коммит `68dea7d`
 - [x] **E4 — чистка хвостов**: `git rm` kotlin-js-store/package-lock.json, корневых package.json/package-lock.json, удалён пустой kotlin-js-store/, из gradle.properties убраны `kotlin.js.yarn=false` и `kotlin.daemon.useNewMemoryManager=true`. Коммит `abe0ee8`
 - [x] **E5 — CI**: `.github/workflows/schema-sync.yml`: setup-java 21→25, setup-node/npm→ `oven-sh/setup-bun@v2` 1.3.14 + `bun install --frozen-lockfile` + `bun run *`. Коммит `a8365aa`
-- [x] **E6 — документация (частично)**: `README.md` обновлён (техстек-таблица с версиями, Backend-секция — JDK 21 осн + JVM-модули JDK 25, CI-секция → Bun). Не закоммичено
-
-### In Progress
-- [ ] **E6 — документация**: дообновить `ARCHITECTURE.md` (строки 175-204: `npm install`→`bun install`, `npm run *`→`bun run *`, строка 202 про "web-tmp"/root package.json уже неактуальна) и `CODE_STYLE.md` (строка 140: `npm run generate:types`→`bun run generate:types`)
+- [x] **E6 — документация**: `README.md` (техстек-таблица, Backend JDK 21 + JVM-модули JDK 25, CI→Bun), `ARCHITECTURE.md` (npm→bun во всех 9 местах, убрана устаревшая note про "web-tmp"/root `{}`), `CODE_STYLE.md` (npm run→bun run). Коммит `4addf2a`
+- [x] **E6-fix — vitest.config.ts**: `__dirname`→`import.meta.dirname` (та же native-config предупреждение, что в vite.config). Коммит `8eea817`
+- [x] **Финальная верификация** ✅: `bun run test` 86/86, `bun run build` ✅ (vite 8.2.1, 1.81s), `bun run lint` ✅; `:shared:jvmTest` + `:shared:generateJsonSchemas` с JDK 25 ✅ (drift-guard 0 — api/schemas не изменились). Важно: shared/JVM теперь требует JDK 25, НЕ 21
 
 ### Blocked
-- (none)
+- (none) — миграция тулчейна полностью завершена, ветка готова к merge
 
 ## Key Decisions
 - **База миграции — `dev`, не `web`/`main`**: `main` отстаёт на 20 коммитов и не содержит KMP-фундамент; `dev` актуален после merge web→dev. План (писался до merge) указывал `web`, но актуальная база — `dev`
@@ -43,20 +42,22 @@ updated: 2026-08-06T22:16:07.811Z
 - **gradle-wrapper.jar не коммитится**: попадает в .gitignore — коммитят только gradlew/gradlew.bat + gradle-wrapper.properties (стандартная практика)
 
 ## Next Steps
-1. Дописать `ARCHITECTURE.md` (строки 180-204): npm→bun команды, обновить 202-строку (note про web-tmp и root `{}` — уже неактуально), строка 177 модель `JsonSchemaGeneratorTest`
-2. Дописать `CODE_STYLE.md` (строка 140): `npm run` → `bun run` в команде регенерации
-3. Закоммитить E6 (`README.md` + `ARCHITECTURE.md` + `CODE_STYLE.md`), msg вида `docs: update commands to Bun, JDK 25, Kotlin 2.4`
-4. Обновить леджер `thoughts/ledgers/CONTINUITY_ses_042b.md` (или создать новый для ses_043) с итогами миграции
-5. Финальная верификация на ветке: `bun run build/test/lint` в web, `./gradlew :shared:jvmTest` + `:shared:generateJsonSchemas` (drift-guard), backend-прогон с JDK21 если требуется
-6. По стратегии: после миграции стабильное состояние → merge `chore/toolchain-upgrade-2026-08` → `dev` → затем `main` → потом планы фич
+1. **Merge ветки**: `chore/toolchain-upgrade-2026-08` (6 коммитов, всё зелёное) → `dev` (fast-forward или merge), затем `dev → main`
+2. После merge — проверить, что CI workflow `schema-sync.yml` работает на реальном push (Java 25 + Bun)
+3. Backend-прогон с JDK 21 (Docker) не требуется для миграции — shared/JVM независим; backend код не менялся
+4. Затем по стратегии: планы новых фич
+5. Отдельные спайки (НЕ в этой ветке): TS7, ESLint10, React Compiler
 
 ## Critical Context
 - **Git-лог ветки `chore/toolchain-upgrade-2026-08`** (последние сверху):
+  - `8eea817` chore(web): use import.meta.dirname in vitest.config for native configLoader compat
+  - `4addf2a` docs: update commands to Bun 1.3.14, JDK 25, Kotlin 2.4
   - `a8365aa` ci: upgrade to Java 25 + Bun 1.3.14
   - `abe0ee8` chore(cleanup): remove JS-target leftovers and stale gradle.properties flags
-  - `68dea7b` chore(jvm): upgrade Gradle 9.6.1, Kotlin 2.4.10, kotlinx-serialization 1.11.0, buildconfig 6.0.10, jvmTarget JVM_25
+  - `68dea7d` chore(jvm): upgrade Gradle 9.6.1, Kotlin 2.4.10, kotlinx-serialization 1.11.0, buildconfig 6.0.10, jvmTarget JVM_25
   - `0c3b87f` chore(web): upgrade toolchain to stable versions + migrate to Bun 1.3.14
-- **Рабочее дерево**: `?? .playwright-mcp/` (игноримается, не трогать) + модифицированные README/ARCHITECTURE/CODE_STYLE (незакоммичены)
+- **Рабочее дерево**: `?? .playwright-mcp/` (игноримается, не трогать) — чисто
+- **Верификация финальная**: web `bun run test` 86/86 ✅, `bun run build` ✅ (vite 8.2.1), `bun run lint` ✅; `:shared:jvmTest` + `:shared:generateJsonSchemas` JDK 25 ✅, drift-guard 0. **Важно**: shared/JVM требует JDK 25, backend — JDK 21
 - **Прошлые сессии**: ветка `dev` с коммитами `b834c47` (fix loading isLoading), `e89d779` (ledger), `5eecd6e`+`5aca5cb` (merge web→dev); 86 web-тестов все зелёные
 - **Environment**: Node 22.12.0, npm 11.7.0, Bun 1.3.14 (глобально), JAVA_HOME → JDK 25.0.3.9, JDK 21.0.8.9 (для backend/wrapper), Windows bash-шелл
 - **claw**: `:shared:jvmTest` с golden-снимками прошёл; `generateJsonSchemas` с drift-guard чистый; nested-проблема: Kotlin 2.3.0 не может парсить JDK 25 (поэтому wrapper обновлял на JDK 21)
@@ -77,7 +78,7 @@ updated: 2026-08-06T22:16:07.811Z
 - `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\README.md` (техстек-таблица + backend/CI секции — СДЕЛАНО, НЕ закоммичено)
 
 ### Коммит (в `chore/toolchain-upgrade-2026-08`):
-- `0c3b87f`, `68dea7b`, `abe0ee8`, `a8365aa` (см. ниже в Critical Context)
+- `0c3b87f`, `68dea7d`, `abe0ee8`, `a8365aa`, `4addf2a`, `8eea817` (см. ниже в Critical Context)
 
 ### Env/Snapshots:
 - Bun 1.3.14, Node 22.12.0, npm 11.7.0, JDK 25.0.3.9, JDK 21.0.8.9, Gradle 9.6.1 (wrapper), Kotlin 2.4.10, kotlinx-serialization 1.11.0, buildconfig 6.0.10, async 0.0.24 (docker-compose), vite 8.2.1 stable
