@@ -1,13 +1,10 @@
 import { useMemo } from 'react';
 import { Card, CardHeader, CardTitle } from '@/shared/ui/card';
 import { toIsoDate } from '@/shared/lib/date';
-import { useAuth } from '@/app/providers/AuthProvider';
-import { useTasksQuery } from '@/entities/task/model/queries';
-import { useNotesQuery } from '@/entities/note/model/queries';
-import { useScheduleQuery } from '@/entities/lesson/model/queries';
-import { LessonCard } from '@/entities/lesson/ui/LessonCard';
-import { TaskRow } from '@/entities/task/ui/TaskRow';
-import { NoteCard } from '@/entities/note/ui/NoteCard';
+import { useAuth } from '@/entities/user';
+import { useTasksQuery, useToggleTaskMutation, TaskRow } from '@/entities/task';
+import { useNotesQuery, NoteCard } from '@/entities/note';
+import { useScheduleQuery, LessonCard } from '@/entities/lesson';
 import type { Lesson } from '@/shared/types';
 
 interface TodayDashboardProps {
@@ -19,6 +16,10 @@ interface TodayDashboardProps {
 export function TodayDashboard({ onSelectLesson }: TodayDashboardProps) {
   const { user } = useAuth();
   const today = toIsoDate(new Date());
+  // Переключение выполнения задачи: раньше мутация вызывалась внутри TaskRow,
+  // теперь TaskRow презентационный (onToggle обязателен) — пробрасываем мутацию
+  // из публичного API сущности task, поведение галочки сохраняется.
+  const toggleMutation = useToggleTaskMutation();
 
   const { data: lessons } = useScheduleQuery(user?.groupName, today, today);
   const { data: tasks } = useTasksQuery();
@@ -60,7 +61,7 @@ export function TodayDashboard({ onSelectLesson }: TodayDashboardProps) {
             <h3 className="mb-4 text-base font-semibold">📋 Ближайшие задачи</h3>
             <div className="space-y-2">
               {activeTasks.map((task) => (
-                <TaskRow key={task.id} task={task} />
+                <TaskRow key={task.id} task={task} onToggle={(task) => toggleMutation.mutate(task)} />
               ))}
               {activeTasks.length === 0 && <p className="text-sm text-muted-foreground">Нет активных задач</p>}
             </div>

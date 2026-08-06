@@ -1,0 +1,28 @@
+{
+  "type": "object",
+  "title": "GroupInfo",
+  "properties": {
+    "id": {
+      "type": "integer"
+    },
+    "name": {
+      "type": "string"
+    },
+    "institute": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "specialty": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "name"
+  ]
+}

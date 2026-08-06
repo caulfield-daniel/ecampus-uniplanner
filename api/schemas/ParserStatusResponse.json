@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "title": "ParserStatusResponse",
+  "properties": {
+    "status": {
+      "type": "string"
+    },
+    "lastUpdate": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "groupsCount": {
+      "type": "integer"
+    },
+    "lessonsCount": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "status",
+    "groupsCount",
+    "lessonsCount"
+  ]
+}

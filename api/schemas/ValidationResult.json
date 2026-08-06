@@ -1,0 +1,18 @@
+{
+  "type": "object",
+  "title": "ValidationResult",
+  "properties": {
+    "isValid": {
+      "type": "boolean"
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "isValid"
+  ]
+}

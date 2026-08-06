@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { noteApi, type NoteInputDto } from '../api/noteApi';
+import { noteApi } from '../api/noteApi';
+import type { NoteInput } from '@/shared/types';
 
 export const noteKeys = {
   all: ['notes'] as const,
@@ -13,7 +14,7 @@ export function useNotesQuery(lessonId?: number) {
 export function useCreateNoteMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: NoteInputDto) => noteApi.create(input),
+    mutationFn: (input: NoteInput) => noteApi.create(input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: noteKeys.all }),
   });
 }
@@ -21,7 +22,7 @@ export function useCreateNoteMutation() {
 export function useUpdateNoteMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, input }: { id: number; input: NoteInputDto }) => noteApi.update(id, input),
+    mutationFn: ({ id, input }: { id: number; input: NoteInput }) => noteApi.update(id, input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: noteKeys.all }),
   });
 }

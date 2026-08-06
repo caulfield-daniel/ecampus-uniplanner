@@ -1,0 +1,36 @@
+{
+  "type": "object",
+  "title": "LoginResponse",
+  "properties": {
+    "token": {
+      "type": "string"
+    },
+    "user": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "fullName": {
+          "type": "string"
+        },
+        "groupName": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "fullName",
+        "groupName"
+      ]
+    }
+  },
+  "required": [
+    "token",
+    "user"
+  ]
+}

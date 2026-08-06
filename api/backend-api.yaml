@@ -3,164 +3,60 @@
 # Публичный API для клиентов (Web, Android)
 # ============================================
 
-# --- Auth Schemas ---
+# --- Схемы ---
+# Единый источник истины моделей — KMP shared (shared/ApiModels.kt).
+# Все схемы — внешние $ref на сгенерированные файлы api/schemas/*.json
+# (./gradlew :shared:generateJsonSchemas). Ручные дубли запрещены.
 User:
-  type: object
-  properties:
-    id:
-      type: string
-      format: uuid
-    email:
-      type: string
-      format: email
-    fullName:
-      type: string
-    groupName:
-      type: string
-  required: [id, email, fullName, groupName]
-
+  $ref: './schemas/User.json'
 RegisterRequest:
-  type: object
-  properties:
-    email:
-      type: string
-      format: email
-    password:
-      type: string
-      minLength: 6
-    fullName:
-      type: string
-    groupName:
-      type: string
-  required: [email, password, fullName, groupName]
-
+  $ref: './schemas/RegisterRequest.json'
 LoginRequest:
-  type: object
-  properties:
-    email:
-      type: string
-      format: email
-    password:
-      type: string
-  required: [email, password]
-
+  $ref: './schemas/LoginRequest.json'
 LoginResponse:
-  type: object
-  properties:
-    token:
-      type: string
-    user:
-      $ref: '#/User'
-  required: [token, user]
+  $ref: './schemas/LoginResponse.json'
 
 # --- Task Schemas ---
 Task:
-  type: object
-  properties:
-    id:
-      type: integer
-    title:
-      type: string
-    description:
-      type: string
-      nullable: true
-    deadline:
-      type: string
-      format: date-time
-    priority:
-      type: integer
-      minimum: 1
-      maximum: 5
-    completed:
-      type: boolean
-  required: [id, title, deadline, priority, completed]
-
+  $ref: './schemas/Task.json'
 TaskInput:
-  type: object
-  properties:
-    title:
-      type: string
-    description:
-      type: string
-    deadline:
-      type: string
-      format: date-time
-    priority:
-      type: integer
-    completed:
-      type: boolean
-  required: [title, deadline, priority]
+  $ref: './schemas/TaskInput.json'
 
 # --- Note Schemas ---
 Note:
-  type: object
-  properties:
-    id:
-      type: integer
-    title:
-      type: string
-    content:
-      type: string
-  required: [id, title, content]
-
+  $ref: './schemas/Note.json'
 NoteInput:
-  type: object
-  properties:
-    title:
-      type: string
-    content:
-      type: string
-  required: [title, content]
+  $ref: './schemas/NoteInput.json'
 
 # --- Schedule Schemas ---
 Lesson:
-  type: object
-  description: 'Занятие в расписании'
-  properties:
-    id:
-      type: integer
-    group:
-      type: string
-    date:
-      type: string
-      format: date
-    weekday:
-      type: string
-    discipline:
-      type: string
-    type:
-      type: string
-    timeStart:
-      type: string
-      format: time
-    timeEnd:
-      type: string
-      format: time
-    teacher:
-      type: string
-      nullable: true
-    room:
-      type: string
-      nullable: true
-    subgroup:
-      type: string
-      nullable: true
-  required: [id, group, discipline, type, timeStart, timeEnd]
-
+  $ref: './schemas/Lesson.json'
 GroupInfo:
-  type: object
-  properties:
-    id:
-      type: integer
-    name:
-      type: string
-    institute:
-      type: string
-      nullable: true
-    specialty:
-      type: string
-      nullable: true
-  required: [id, name]
+  $ref: './schemas/GroupInfo.json'
+
+# --- University Schemas (контур университета, university-sync) ---
+Institute:
+  $ref: './schemas/Institute.json'
+Specialty:
+  $ref: './schemas/Specialty.json'
+AcademicGroup:
+  $ref: './schemas/AcademicGroup.json'
+Teacher:
+  $ref: './schemas/Teacher.json'
+Room:
+  $ref: './schemas/Room.json'
+CaptchaChallengeResponse:
+  $ref: './schemas/CaptchaChallengeResponse.json'
+UniversityLoginRequest:
+  $ref: './schemas/UniversityLoginRequest.json'
+UniversityLinkStatus:
+  $ref: './schemas/UniversityLinkStatus.json'
+ParserStatusResponse:
+  $ref: './schemas/ParserStatusResponse.json'
+ParserSyncRequest:
+  $ref: './schemas/ParserSyncRequest.json'
+ParserSyncResponse:
+  $ref: './schemas/ParserSyncResponse.json'
 
 # --- Auth Paths ---
 auth_register:
@@ -221,6 +117,89 @@ auth_me:
               $ref: '#/User'
       '401':
         description: Не авторизован
+
+# --- University Auth Paths (контур университета, university-sync) ---
+university_auth_captcha:
+  post:
+    tags: [university]
+    summary: Запросить капчу для входа в ИС университета
+    responses:
+      '200':
+        description: Новая капча (attemptId + base64-изображение)
+        content:
+          application/json:
+            schema:
+              $ref: '#/CaptchaChallengeResponse'
+      '503':
+        description: Парсер недоступен
+        content:
+          application/json:
+            schema:
+              $ref: './common.yaml#/ErrorResponse'
+
+university_auth_login:
+  post:
+    tags: [university]
+    summary: Войти в ИС университета (логин + пароль + капча)
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/UniversityLoginRequest'
+    responses:
+      '200':
+        description: Учётная запись подключена
+        content:
+          application/json:
+            schema:
+              $ref: '#/UniversityLinkStatus'
+      '400':
+        description: Неверная капча или учётные данные
+        content:
+          application/json:
+            schema:
+              $ref: './common.yaml#/ErrorResponse'
+      '503':
+        description: Парсер недоступен
+        content:
+          application/json:
+            schema:
+              $ref: './common.yaml#/ErrorResponse'
+
+university_auth_status:
+  get:
+    tags: [university]
+    summary: Статус подключения к ИС университета
+    security: [{ bearerAuth: [] }]
+    responses:
+      '200':
+        description: Статус подключения
+        content:
+          application/json:
+            schema:
+              $ref: '#/UniversityLinkStatus'
+      '401':
+        description: Не авторизован
+        content:
+          application/json:
+            schema:
+              $ref: './common.yaml#/ErrorResponse'
+
+university_auth_link:
+  delete:
+    tags: [university]
+    summary: Отключить учётную запись ИС университета
+    security: [{ bearerAuth: [] }]
+    responses:
+      '204':
+        description: Учётная запись отключена
+      '401':
+        description: Не авторизован
+        content:
+          application/json:
+            schema:
+              $ref: './common.yaml#/ErrorResponse'
 
 # --- Tasks Paths ---
 tasks_collection:

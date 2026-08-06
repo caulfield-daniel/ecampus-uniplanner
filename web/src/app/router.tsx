@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from '@/widgets/Layout';
-import { useAuth } from '@/app/providers/AuthProvider';
+import { useAuth } from '@/entities/user';
 import { LoginPage } from '@/pages/LoginPage';
 import { TodayPage } from '@/pages/TodayPage';
 import { SchedulePage } from '@/pages/SchedulePage';

@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "title": "TaskInput",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "deadline": {
+      "type": "string"
+    },
+    "priority": {
+      "type": "integer"
+    },
+    "completed": {
+      "type": "boolean"
+    },
+    "relatedLessonId": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "title",
+    "deadline",
+    "priority"
+  ]
+}

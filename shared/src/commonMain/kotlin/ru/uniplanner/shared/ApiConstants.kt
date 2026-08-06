@@ -1,10 +1,8 @@
 package ru.uniplanner.shared
 
 import kotlinx.serialization.Serializable
-import kotlin.js.JsExport
 import ru.uniplanner.shared.config.API_BASE_URL
 
-@JsExport
 object ApiConstants {
     val BASE_URL: String = API_BASE_URL
 
@@ -34,7 +32,6 @@ object ApiConstants {
 }
 
 // Объект передачи данных для ответов API
-@JsExport
 @Serializable
 data class ApiResponse<T>(
     val data: T? = null,
@@ -43,14 +40,12 @@ data class ApiResponse<T>(
 )
 
 // Параметры запросов к эндпоинтам
-@JsExport
 @Serializable
 data class ScheduleParams(
     val group: String,
     val date: String? = null
 )
 
-@JsExport
 @Serializable
 data class TaskUpdateParams(
     val title: String? = null,
@@ -60,7 +55,6 @@ data class TaskUpdateParams(
     val completed: Boolean? = null
 )
 
-@JsExport
 @Serializable
 data class ParserSyncParams(
     val startDate: String? = null,

@@ -1,0 +1,70 @@
+# ============================================
+# CI: drift-guard генерации типов (KMP shared → api/schemas → TS web)
+# Единый источник истины моделей — shared/ApiModels.kt.
+# Если после регенерации артефакты отличаются от закоммиченных —
+# задача падает: обнови коммиты (./gradlew :shared:generateJsonSchemas
+# + cd web && npm run generate:types) и закоммить результат.
+# ============================================
+name: Schema Sync
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  drift-guard:
+    name: Drift-guard (JSON Schema + TS-типы)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # Репозиторий закоммичен с Windows: у gradlew нет exec-бита.
+      - name: chmod gradlew
+        run: chmod +x gradlew
+
+      - name: Генерация JSON Schema из shared (KMP → api/schemas)
+        run: ./gradlew :shared:generateJsonSchemas
+
+      - name: Установка зависимостей и генерация TS-типов web (api/schemas → src/shared/types/generated)
+        working-directory: web
+        run: |
+          npm ci
+          npm run generate:types
+
+      # Drift-guard: регенерация не должна менять закоммиченные артефакты
+      # (api/schemas/*.json, web/src/shared/types/generated/*.d.ts).
+      - name: Drift-guard (git diff --exit-code)
+        run: |
+          git diff --exit-code
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Незакоммиченные изменения после регенерации:"
+            git status --porcelain
+            exit 1
+          fi
+
+      - name: Сборка web
+        working-directory: web
+        run: npm run build
+
+      - name: Тесты web
+        working-directory: web
+        run: npm run test
+
+      - name: Линт web
+        working-directory: web
+        run: npm run lint

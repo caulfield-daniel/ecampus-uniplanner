@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "title": "RegisterRequest",
+  "properties": {
+    "email": {
+      "type": "string"
+    },
+    "password": {
+      "type": "string"
+    },
+    "fullName": {
+      "type": "string"
+    },
+    "groupName": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "email",
+    "password",
+    "fullName",
+    "groupName"
+  ]
+}

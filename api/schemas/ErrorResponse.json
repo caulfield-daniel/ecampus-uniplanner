@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "title": "ErrorResponse",
+  "properties": {
+    "code": {
+      "type": "integer"
+    },
+    "message": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "code",
+    "message"
+  ]
+}

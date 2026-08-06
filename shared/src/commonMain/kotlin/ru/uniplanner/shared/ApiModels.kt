@@ -2,7 +2,6 @@ package ru.uniplanner.shared
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlin.js.JsExport
 
 // ============================================
 // Общие модели
@@ -18,7 +17,6 @@ data class ErrorResponse(
 // Модели, связанные с пользователями
 // ============================================
 
-@JsExport
 @Serializable
 data class User(
     val id: String,
@@ -51,7 +49,6 @@ data class LoginResponse(
 // Модели, связанные с задачами
 // ============================================
 
-@JsExport
 @Serializable
 data class Task(
     val id: Int,
@@ -64,7 +61,6 @@ data class Task(
     val relatedLessonId: Int? = null // привязка к занятию в расписании (опционально)
 )
 
-@JsExport
 @Serializable
 data class TaskInput(
     val title: String,
@@ -80,7 +76,6 @@ data class TaskInput(
 // Модели, связанные с заметками
 // ============================================
 
-@JsExport
 @Serializable
 data class Note(
     val id: Int,
@@ -89,7 +84,6 @@ data class Note(
     val relatedLessonId: Int? = null // привязка к занятию в расписании (опционально)
 )
 
-@JsExport
 @Serializable
 data class NoteInput(
     val title: String,
@@ -101,7 +95,6 @@ data class NoteInput(
 // Модели, связанные с расписанием
 // ============================================
 
-@JsExport
 @Serializable
 data class Lesson(
     val id: Int,
@@ -124,7 +117,6 @@ data class Lesson(
 // Модели, связанные с группами
 // ============================================
 
-@JsExport
 @Serializable
 data class GroupInfo(
     val id: Int,
@@ -137,7 +129,6 @@ data class GroupInfo(
 // Модели, связанные с парсером расписания
 // ============================================
 
-@JsExport
 @Serializable
 data class Institute(
     val id: Int,
@@ -146,7 +137,6 @@ data class Institute(
     val branchId: Int = 1  // default: 1
 )
 
-@JsExport
 @Serializable
 data class Specialty(
     val id: Int,
@@ -154,7 +144,6 @@ data class Specialty(
     val instituteId: Int
 )
 
-@JsExport
 @Serializable
 data class AcademicGroup(
     val id: Int,
@@ -163,21 +152,18 @@ data class AcademicGroup(
     val specialtyId: Int
 )
 
-@JsExport
 @Serializable
 data class Teacher(
     val id: Int,
     val name: String = "неизвестно"  // default: 'неизвестно'
 )
 
-@JsExport
 @Serializable
 data class Room(
     val id: Int,
     val name: String
 )
 
-@JsExport
 @Serializable
 data class ParserStatusResponse(
     val status: String,        // enum: [running, idle, error]
@@ -186,7 +172,6 @@ data class ParserStatusResponse(
     val lessonsCount: Int
 )
 
-@JsExport
 @Serializable
 data class ParserSyncRequest(
     val startDate: String?,    // format: date
@@ -194,11 +179,19 @@ data class ParserSyncRequest(
     val groups: List<String>? = null  // список групп для синхронизации
 )
 
+@Serializable
+data class ParserSyncResponse(
+    val group: String,          // группа, для которой выполнялась синхронизация
+    val startDate: String? = null,  // format: date (YYYY-MM-DD)
+    val endDate: String? = null,    // format: date (YYYY-MM-DD)
+    val syncedLessons: Int = 0,     // количество синхронизированных занятий
+    val status: String = "completed" // enum: [completed, partial, failed]
+)
+
 // ============================================
 // Модели личного входа пользователя в ecampus.ncfu.ru (через капчу)
 // ============================================
 
-@JsExport
 @Serializable
 data class CaptchaChallengeResponse(
     val attemptId: String,
@@ -213,7 +206,6 @@ data class UniversityLoginRequest(
     val captchaAnswer: String
 )
 
-@JsExport
 @Serializable
 data class UniversityLinkStatus(
     val linked: Boolean,

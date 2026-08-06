@@ -15,48 +15,37 @@ plugins {
 // ============================================
 // ГЛОБАЛЬНЫЕ ЗАДАЧИ (группа "ecampus")
 // ============================================
-tasks.register("buildJsDev") {
+
+/**
+ * Генерация JSON Schema из shared-моделей в api/schemas
+ */
+tasks.register("generateSchemas") {
     group = "ecampus"
-    description = "Сборка development JS из shared-модуля и копирование в web/src/shared/kmp"
-    dependsOn(":shared:copyJsToWebDev")
+    description = "Генерация JSON Schema (api/schemas) из shared-моделей"
+    dependsOn(":shared:generateJsonSchemas")
 }
 
-tasks.register("buildJsProd") {
-    group = "ecampus"
-    description = "Сборка production JS из shared-модуля и копирование в web/src/shared/kmp"
-    dependsOn(":shared:copyJsToWebProd")
-}
-
-tasks.register("buildAllDev") {
-    group = "ecampus"
-    description = "Полная development сборка проекта"
-    dependsOn(":shared:copyJsToWebDev", ":backend:build")
-}
-
+/**
+ * Полная сборка проекта (shared + backend)
+ */
 tasks.register("buildAll") {
     group = "ecampus"
-    description = "Полная production сборка проекта"
-    dependsOn(":shared:copyJsToWebProd", ":backend:build")
+    description = "Полная сборка проекта (shared + backend)"
+    dependsOn(":shared:build", ":backend:build")
 }
 
+/**
+ * Очистка всех build-директорий
+ */
 tasks.register("cleanAll") {
     group = "ecampus"
-    description = "Очистка всех build-директорий и сгенерированных shared-файлов в web"
-    dependsOn("clean", ":shared:clean", ":backend:clean", ":shared:cleanWebKmp")
+    description = "Очистка всех build-директорий"
+    dependsOn("clean", ":shared:clean", ":backend:clean")
 }
 
-tasks.register("rebuildJsDev") {
-    group = "ecampus"
-    description = "Полная пересборка development JS (clean → build → copy)"
-    dependsOn(":shared:rebuildJsDev")
-}
-
-tasks.register("rebuildJsProd") {
-    group = "ecampus"
-    description = "Полная пересборка production JS (clean → build → copy)"
-    dependsOn(":shared:rebuildJsProd")
-}
-
+/**
+ * Информационная задача — список доступных команд
+ */
 tasks.register("showTasks") {
     group = "ecampus"
     description = "Показать все доступные задачи верхнего уровня"
@@ -65,23 +54,26 @@ tasks.register("showTasks") {
         println("📦 ECAMPUS UNIPLANNER - Доступные задачи")
         println("=".repeat(60))
         println("\n🔧 СБОРКА:")
-        println("  buildJsDev       - Сборка development JS + копирование в web")
-        println("  buildJsProd      - Сборка production JS + копирование в web")
-        println("  buildAllDev      - Полная development сборка (shared + backend)")
-        println("  buildAll         - Полная production сборка (shared + backend)")
+        println("  generateSchemas - Генерация JSON Schema (api/schemas) из shared-моделей")
+        println("  buildAll        - Полная сборка проекта (shared + backend)")
         println("\n🧹 ОЧИСТКА:")
-        println("  cleanAll         - Очистить все build-директории")
-        println("\n🔄 ПЕРЕСБОРКА:")
-        println("  rebuildJsDev     - Полная пересборка development JS")
-        println("  rebuildJsProd    - Полная пересборка production JS")
+        println("  cleanAll        - Очистить все build-каталоги")
+        println("\nℹ️  ИНФО:")
+        println("  showTasks       - Показать это сообщение")
+        println("  tasks           - Показать все задачи Gradle")
+        println("\n🌐 ВЕБ-КЛИЕНТ (web/):")
+        println("  npm run generate:types - Генерация TS-типов (web/src/shared/types/generated) из api/schemas")
         println("\n🚀 BACKEND:")
         println("  :backend:bootRun       - Запустить Spring Boot")
         println("  :backend:build         - Собрать backend JAR")
         println("  :backend:test          - Запустить тесты backend")
-        println("\n" + "=".repeat(60) + "\n")
+        println("\n" + "=".repeat(60))
+        println("📁 Сгенерированные файлы: api/schemas/*.json, web/src/shared/types/generated/*.d.ts")
+        println("=".repeat(60) + "\n")
     }
 }
 
+// Небольшое дополнение к задаче help
 tasks.named("help") {
     doLast {
         println("\n💡 Для списка задач Ecampus используйте: ./gradlew showTasks\n")

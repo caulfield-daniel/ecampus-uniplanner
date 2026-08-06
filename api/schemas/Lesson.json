@@ -1,0 +1,58 @@
+{
+  "type": "object",
+  "title": "Lesson",
+  "properties": {
+    "id": {
+      "type": "integer"
+    },
+    "group": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string"
+    },
+    "weekday": {
+      "type": "string"
+    },
+    "discipline": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string"
+    },
+    "timeStart": {
+      "type": "string"
+    },
+    "timeEnd": {
+      "type": "string"
+    },
+    "teacher": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "room": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "subgroup": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "group",
+    "date",
+    "weekday",
+    "discipline",
+    "type",
+    "timeStart",
+    "timeEnd"
+  ]
+}

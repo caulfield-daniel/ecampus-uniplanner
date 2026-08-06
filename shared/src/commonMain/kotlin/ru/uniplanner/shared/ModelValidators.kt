@@ -1,7 +1,6 @@
 package ru.uniplanner.shared
 
 import kotlinx.serialization.Serializable
-import kotlin.js.JsExport
 
 /**
  * Вспомогательный класс для валидации моделей API в соответствии с ограничениями,

@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "title": "Note",
+  "properties": {
+    "id": {
+      "type": "integer"
+    },
+    "title": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string"
+    },
+    "relatedLessonId": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "title",
+    "content"
+  ]
+}

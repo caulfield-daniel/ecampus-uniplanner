@@ -13,38 +13,39 @@ KMP shared-модуль и заготовка Android-клиента — арх�
 Проект представляет собой монорепозиторий, содержащий:
 
 - **Gradle-модули**:
-  - `shared` — общий Kotlin Multiplatform модуль с моделями данных (экспорт для JVM и JS).
+  - `shared` — общий Kotlin Multiplatform модуль с моделями данных (экспорт для JVM).
   - `backend` — серверное приложение на Kotlin + Spring Boot, слои PCMEF.
   - `android` — задел под будущий Android-клиент на Jetpack Compose (не реализуется в текущей итерации).
 
 - **Внешние сервисы**:
-  - `web` — фронтенд на React + TypeScript + Vite.
+  - `web` — фронтенд на React + TypeScript + Vite (архитектура FSD).
   - `parser` — микросервис на Python (FastAPI) для парсинга расписания с информационной системы университета (cookie-авторизация). За основу взят проект телеграм-бота [CampusBOT](https://github.com/alikhan902/CampusBOT). Имеет собственную БД `uniplanner_parser`, отдельную от БД бэкенда.
 
 - **Общие артефакты**:
   - `api/*.yaml` — спецификация OpenAPI для взаимодействия между компонентами (живая документация генерируется springdoc на `/api/v1/swagger-ui.html`).
+  - `api/schemas/*.json` — JSON Schema, генерируемые из shared-моделей (единый источник типов для web).
 
 ## Технологический стек
 
 | Компонент           | Технологии                                                                 |
 |---------------------|----------------------------------------------------------------------------|
-| Shared-модуль       | Kotlin Multiplatform (JVM + JS таргеты), kotlinx.serialization              |
+| Shared-модуль       | Kotlin Multiplatform (JVM таргет), kotlinx.serialization                    |
 | Бэкенд              | Kotlin, Spring Boot 3, Spring Data JPA, Spring Security, JWT, Flyway, PostgreSQL |
-| Веб-клиент          | React, TypeScript, Vite                                                    |
+| Веб-клиент          | React, TypeScript, Vite, FSD                                                |
 | Android-клиент      | Kotlin, Jetpack Compose (план на будущее, не в текущей итерации)           |
 | Парсер              | Python, FastAPI, SQLAlchemy, BeautifulSoup, PostgreSQL (своя БД)            |
-| Инфраструктура      | Gradle, Docker / docker-compose (опционально)                              |
+| Инфраструктура      | Gradle, Docker / docker-compose (опционально), GitHub Actions (CI)          |
 
 ## Структура проекта
 
 ```bash
 ecampus-uniplanner/
-├── api/                      # OpenAPI спецификация (контракт)
+├── api/                      # OpenAPI спецификация + JSON Schema (api/schemas)
 ├── backend/                  # Spring Boot бэкенд (PCMEF-слои)
 ├── shared/                   # KMP-модуль с моделями
 ├── docs/                     # Документация курсового проекта (по этапам методички)
 ├── android/                  # Задел под будущий Android-клиент
-├── web/                      # React-клиент
+├── web/                      # React-клиент (FSD)
 ├── parser/                   # Python-сервис парсера (на основе CampusBot)
 ├── gradle/                   # Gradle wrapper и version catalog
 ├── build.gradle.kts          # Корневой скрипт сборки
@@ -75,12 +76,26 @@ docs/
 
 ## Разработка
 
+### Модели данных (shared → web)
+
 - Все модели данных находятся в `shared/src/commonMain/kotlin/ru/uniplanner/shared/`.
 - Для добавления новой модели:
-  1. Создайте data-класс с аннотациями `@Serializable` и `@JsExport`.
-  2. Выполните `./gradlew :shared:rebuildJsDev` (пересобирает и копирует JS/d.mts в `web/src/shared/kmp/dto/`).
-  3. Импортируйте типы в React через мост `web/src/shared/kmp/index.ts` (см. [docs/05-implementation/code-structure.md](docs/05-implementation/code-structure.md) про известные шероховатости генерации `.d.mts`).
-- Backend требует JDK 21. Если в `PATH`/`JAVA_HOME` стоит другая версия Java, передайте `JAVA_HOME` явно при вызове Gradle (например, `$env:JAVA_HOME = 'C:\Program Files\Eclipse Adoptium\jdk-21.0.8.9-hotspot'` в PowerShell перед `./gradlew`). В Docker-сборке (`backend/Dockerfile`) JDK 21 уже корректный по умолчанию.
+  1. Создайте data-класс с аннотацией `@Serializable` в `shared/src/commonMain/kotlin/...` и добавьте его в список сериализаторов в `GenerateJsonSchemasMain.kt`.
+  2. Выполните `./gradlew :shared:generateJsonSchemas` (JSON Schema в `api/schemas/`) и `./gradlew :shared:jvmTest` (golden-снапшот-тесты `JsonSchemaGeneratorTest`).
+  3. В web: `npm run generate:types` — сгенерирует `web/src/shared/types/generated/*.d.ts`; импортируйте: `import type { Model } from '@/shared/types'`.
+
+### Backend
+
+Backend требует JDK 21. Если в `PATH`/`JAVA_HOME` стоит другая версия Java, передайте `JAVA_HOME` явно при вызове Gradle (например, `$env:JAVA_HOME = 'C:\Program Files\Eclipse Adoptium\jdk-21.0.8.9-hotspot'` в PowerShell перед `./gradlew`). В Docker-сборке (`backend/Dockerfile`) JDK 21 уже корректный по умолчанию.
+
+## CI (drift-guard)
+
+GitHub Actions workflow `.github/workflows/schema-sync.yml` на каждый push в `main` и pull request:
+
+1. `./gradlew :shared:generateJsonSchemas` — регенерация `api/schemas/*.json` из `shared`.
+2. `cd web && npm ci && npm run generate:types` — регенерация TS-типов web.
+3. `git diff --exit-code` — **дрифт-гард**: если регенерация меняет закоммиченные артефакты, задача падает.
+4. `npm run build && npm run test && npm run lint` — проверка сборки и тестов.
 
 ## Статистика разработки
 

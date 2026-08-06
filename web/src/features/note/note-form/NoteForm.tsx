@@ -4,8 +4,8 @@ import { Input } from '@/shared/ui/input';
 import { Textarea } from '@/shared/ui/textarea';
 import { Label } from '@/shared/ui/label';
 import type { Note } from '@/shared/types';
-import type { NoteInputDto } from '@/entities/note/api/noteApi';
-import { useCreateNoteMutation, useUpdateNoteMutation } from '@/entities/note/model/queries';
+import type { NoteInput } from '@/shared/types';
+import { useCreateNoteMutation, useUpdateNoteMutation } from '@/entities/note';
 
 interface NoteFormProps {
   note?: Note;
@@ -23,7 +23,7 @@ export function NoteForm({ note, lessonId, onSuccess }: NoteFormProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const input: NoteInputDto = { title, content, relatedLessonId: lessonId ?? note?.relatedLessonId };
+    const input: NoteInput = { title, content, relatedLessonId: lessonId ?? note?.relatedLessonId };
     try {
       if (note) {
         await updateMutation.mutateAsync({ id: note.id, input });
