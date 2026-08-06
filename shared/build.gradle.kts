@@ -9,7 +9,7 @@ plugins {
 kotlin {
     jvm {
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_21)
+            jvmTarget.set(JvmTarget.JVM_25)
         }
     }
 
@@ -51,7 +51,7 @@ val generateJsonSchemas by tasks.registering(JavaExec::class) {
     val jvmMain = kotlin.targets.getByName("jvm").compilations.getByName("main")
     dependsOn(jvmMain.compileTaskProvider)
 
-    classpath = files(jvmMain.output.allOutputs) + jvmMain.runtimeDependencyFiles
+    classpath = files(jvmMain.output.allOutputs) + jvmMain.runtimeDependencyFiles!!
     mainClass.set("ru.uniplanner.shared.schema.GenerateJsonSchemasMainKt")
     args(rootProject.layout.projectDirectory.dir("api/schemas").asFile.absolutePath)
 }

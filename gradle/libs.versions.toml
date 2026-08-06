@@ -1,7 +1,7 @@
 [versions]
 # Kotlin & KMP
-kotlin = "2.3.0"
-kotlinxSerialization = "1.8.1"
+kotlin = "2.4.10"
+kotlinxSerialization = "1.11.0"
 
 # Spring
 springBoot = "3.4.6"
@@ -59,7 +59,7 @@ mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 # KMP
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-buildConfig = { id = "com.github.gmazzo.buildconfig", version = "5.3.5" }
+buildConfig = { id = "com.github.gmazzo.buildconfig", version = "6.0.10" }
 
 # Backend
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
