@@ -64,7 +64,7 @@ describe('LoginForm', () => {
     render(<LoginForm />);
 
     // Заголовок и поля входа присутствуют, полей регистрации ещё нет.
-    expect(screen.getByText('Student Hub')).toBeTruthy();
+    expect(screen.getByText('UniPlanner')).toBeTruthy();
     expect(screen.getByLabelText('Email')).toBeTruthy();
     expect(screen.getByLabelText('Пароль')).toBeTruthy();
     expect(screen.queryByLabelText('ФИО')).toBeNull();

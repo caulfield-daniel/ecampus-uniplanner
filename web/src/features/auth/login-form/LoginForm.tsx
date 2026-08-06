@@ -37,7 +37,7 @@ export function LoginForm() {
 
   return (
     <div className="mx-auto mt-24 w-full max-w-sm">
-      <h1 className="mb-6 text-2xl font-bold tracking-tight">Student Hub</h1>
+      <h1 className="mb-6 text-2xl font-bold tracking-tight">UniPlanner</h1>
       <div className="mb-4 flex gap-2">
         <Button variant={mode === 'login' ? 'default' : 'outline'} onClick={() => setMode('login')}>
           Вход
