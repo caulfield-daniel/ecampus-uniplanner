@@ -1,68 +1,57 @@
 ---
 session: ses_042b
-updated: 2026-08-06T18:10:00.000Z
+updated: 2026-08-06T22:05:00.000Z
 ---
 
 # Session Summary
 
 ## Goal
-Замёржить ветку `web` в `dev` (первый шаг стратегии: инкрементальные стабильные миграции в `dev` → затем `dev` в `main` → затем планы фич). ✅ **Merge завершён успешно** (коммит `5eecd6e`).
+Запустить весь проект на ветке `dev` (backend в Docker + frontend через npm run dev) и починить причину, из-за которой приложение не стартовало. Также ранее: привести репозиторий к единому актуальному `dev` (удалить устаревшие ветки) и завершить merge `web → dev`.
 
 ## Constraints & Preferences
-- **Стратегия (озвучена пользователем):** web → dev сейчас; последующие миграции тулчейна делать постепенно, стабильные состояния мерджить в dev; после полной миграции стабильное состояние мерджить в dev → main; только потом намечать детальные планы новых фич и приступать к реализации
-- **Миграция тулчейна** (`chore/toolchain-upgrade-2026-08`): НЕ начинать — план согласован, но реализация отложена до завершения merge web→dev
-- **Решения по миграции (согласованы):** только безопасные апгрейды (без TS7/ESLint10/React Compiler); переход на Bun 1.3.14; Java 21 → 25 (JVM target); чистка хвостов JS-таргета
-- **Для web-файлов при конфликтах брать сторону `web`** (актуальный FSD + KMP-фундамент — то, что мы хотим влить); README/build.gradle.kts мержить аккуратно (dev содержит backend/Spring Boot часть)
+- **Стратегия (озвучена пользователем)**: инкрементальные стабильные миграции в `dev`, затем `dev → main`, только потом планы новых фич
+- **Backend требует JDK 21**: для gradle-задач обязательно `JAVA_HOME='C:\Program Files\Eclipse Adoptium\jdk-21.0.8.9-hotspot'` (в PATH стоит JDK 25.0.3.9 — не подходит)
+- **Backend-тесты требуют живую PostgreSQL** (не testcontainers) — поднимать через `docker compose up -d`
+- Для web-файлов при merge брать сторону `web` (актуальный FSD + KMP-фундамент)
+- База миграций — `web` (не `main`): main отстаёт и не содержит KMP-фундамент
 
 ## Progress
 ### Done
-- [x] Верифицировал план KMP-фундамента (`2026-08-03-kmp-foundation-plan.md`) — все 5 этапов выполнены; обновил статус → `done`, закоммитил (`7d08379`)
-- [x] Исследовал версии тулчейна (актуальные на 2026-08-06): Vite 8.2.0, vitest 4.1.10, plugin-react 6.0.5, React 19.2.8, TS 7.0.2, ESLint 10.8.0, Bun 1.3.14, Gradle 9.6.1, Kotlin 2.4.10, kotlinx-serialization 1.11.0, buildconfig 6.0.10, JDK 25
-- [x] Написал план миграции `thoughts/shared/plans/2026-08-06-toolchain-migration-plan.md` (оценка целесообразности каждого перехода; ветка `chore/toolchain-upgrade-2026-08` от `web`; спайк Этапа 0 — проверить Bun + нативные модули Vite 8 rolldown/lightningcss); коммит `0bcb405`
-- [x] Исследовал ветки: `main` отстаёт на 20 коммитов (2026-06-24, без KMP-фундамента), `dev` — 13 коммитов (backend Spring Boot, parser, hotfix'ы), `web` — актуальная база (22 коммита от `main`)
-- [x] Закоммитил незакоммиченный леджер `thoughts/ledgers/CONTINUITY_ses_042b.md` (`00d416c`)
-- [x] Переключился на `dev`, запустил `git merge web --no-ff -m "merge(web): FSD refactor + KMP foundation into dev"` — 7 конфликтов
-- [x] **Разрешил все 7 конфликтов**:
-  1. `README.md` — ручной merge: структура/факты от dev (Spring Boot, JDK 21, траектория Б, docs/), KMP-флоу (JSON Schema) + CI drift-guard от web; убрал устаревшее «Ktor»
-  2. `build.gradle.kts` — ручной merge: backend-плагины (kotlinJvm/Spring/Jpa/springBoot/springDependencyManagement) + `:backend` в `buildAll`/`cleanAll` от dev; `generateSchemas`/`showTasks` от web; удалены устаревшие JS-таски (`buildJsDev`/`buildJsProd`/`buildAllDev`/`rebuildJs*`/`cleanWebKmp`)
-  3. `web/src/entities/task/api/taskApi.ts` — сторона web (`TaskInput` из `@/shared/types`)
-  4. `web/src/entities/task/ui/TaskRow.tsx` — сторона web (презентационный, `onToggle` prop, `deadlineUrgency` из `../model/deadline`)
-  5. `web/src/pages/NotesPage.tsx` — сторона web (тонкая обёртка над `NoteList`)
-  6. `web/src/pages/TasksPage.tsx` — сторона web (тонкая обёртка над `TaskList`)
-  7. `web/src/shared/types/index.ts` — сторона web (реэкспорт из `./generated`)
-- [x] Пофиксил упавший тест `web/src/widgets/Sidebar.test.tsx` — обновил ожидание «Student Hub» → «UniPlanner» (dev сделал ребрендинг, тест не был обновлён)
-- [x] **Верифицировал сборку (всё зелёное):**
-  - Web: `npm run build` ✅, `npm run test` — 85/85 ✅, `npm run lint` ✅
-  - Drift-guard: `node scripts/generate-types.mjs` — 23 файла, дрифта нет ✅
-  - Shared: `./gradlew :shared:jvmTest` ✅ (с JDK 21)
-  - Backend: `./gradlew :backend:test` — 32/32 ✅ (с PostgreSQL; потребовался запуск Docker Desktop + `docker compose up -d postgres-backend`)
-- [x] **Закоммитил merge**: `5eecd6e` «merge(web): FSD refactor + KMP foundation into dev», рабочее дерево чистое
-
-### In Progress
-- (none) — merge web→dev полностью завершён
+- [x] **Проверил ветку `dev-2`**: 0 уникальных коммитов относительно `dev` — полностью поглощена, все изменения уже влиты (часто в более развитой форме, напр. `er-diagram.md` в dev — 87 строк против 70 в dev-2). Удалил: `git branch -d dev-2`
+- [x] **Проверил ветку `check-dto`**: 1 уникальный коммит от февраля на мёртвом коде (`web/src/shared/types.ts`, `web/src/App.tsx` — не существуют в актуальной FSD-структуре). Удалил: `git branch -D check-dto` (не полностью слита)
+- [x] Итоговый набор веток: `backend-main`, `dev`*, `kmp-shared-rework`, `main` (4 коммита docs только), `parser`, `parser-api`, `parser-db`, `shared-kmp`, `web` — все кроме `main` полностью слиты в dev
+- [x] **Запустил backend (Docker)**: `docker compose up -d` → postgres-backend (healthy) + backend-1. Tomcat стартовал на 8080 с context path `/api/v1`
+- [x] **Проверил backend**: swagger 200, CORS preflight OPTIONS 200 (CORS_ORIGINS включает `http://localhost:5173`), auth/login с `{"email":...}` → 401 «Неверный email или пароль» (корректно) ; с `{"username":...}` → 500 (kotlinx.serialization: unknown key 'username' — поле называется `email`)
+- [x] **Запустил frontend**: `npm run dev` в фоне, Vite v8.0.0-beta.15 на `http://localhost:5173/`
+- [x] **Нашёл и пофиксил баг в `user-context.tsx`**: Browser показывал бесконечную «Загрузка...» (URL оставался `/`). Причина: react-query v5 у отключённого запроса (`enabled: false` при отсутствии токена) возвращает `isPending: true` всегда → `loading = meQuery.isPending` навсегда `true` → ProtectedRoute не редиректил на /login. Исправление: `const loading = meQuery.isLoading;` (isLoading = isPending && isFetching, для отключённого запроса корректно false)
+- [x] **Протестировал приложение в Playwright**: после фикса URL редиректит на `/login`, форма входа/регистрации работает. Зарегистрировал тестового пользователя: **test@test.ru / password123 / Тест Тест / ИС-21** — полный цикл (регистрация → авто-логин → дашборд «Сегодня» с данными) работает. Все страницы работоспособны: Today, Tasks, Notes, Schedule (0 занятий/задач/заметок)
+- [x] **Добавил регрессионный тест** в `user-context.test.tsx` (без токена `loading=false` для отключённого запроса) и восстановил случайно удалённую строку `const clearSpy = vi.spyOn(queryClient, 'clear');`
+- [x] **Починил падающий тест**: существующие моки `useMeQuery` содержали только `isPending: false`, но после фикса `loading` читается из `isLoading` (его не было → `undefined` → `toBe(false)` фейлил). Добавил `isLoading: false` во все три мока. `npx vitest run user-context.test.tsx` — 4/4 ✅
+- [x] **Полная верификация web (всё зелёное)**: `npm run test` — 86/86 ✅, `npm run lint` — чисто ✅, `npm run build` (tsc -b + vite build) — успешно ✅
+- [x] **Закоммитил фикс** в `dev`: `b834c47` «fix(web): loading берётся из isLoading, а не isPending — отключённый запрос (нет токена) больше не держит экран «Загрузка...»» (user-context.tsx + user-context.test.tsx)
 
 ### Blocked
-- (none)
+- (none) — проект запущен и работает
 
 ## Key Decisions
-- **Брать сторону `web` для web-файлов**: web содержит финальный FSD-рефакторинг (тонкие страницы, features-слои, презентационные компоненты) и KMP-фундамент (генерированные типы) — это целевое состояние проекта; dev-версии содержат устаревший `@shared/kmp` мост и толстые страницы
-- **README.md и build.gradle.kts — аккуратный ручной merge**: dev содержит backend-модуль (Spring Boot) + документацию, web переписал корневые задачи и дoки — объединены обе части
-- **settings.gradle.kts и libs.versions.toml смержились автоматически**: `:backend` include и backend-плагины сохранены
-- **База миграций — `web` (не `main`)**: main отстаёт на 20 коммитов и не содержит KMP-фундамент
-- **Миграция тулчейна — отдельная ветка `chore/toolchain-upgrade-2026-08`, безопасные апгрейды только**
-- **Этап 0 (спайк) перед Bun**: Vite 8 тянет нативные модули (rolldown ~1.2.0, lightningcss) — проверить `bun install && bun run build`; fallback — остаться на npm
-- **Тест backend `contextLoads` требует живую PostgreSQL** (не testcontainers) — для `:backend:test` нужно поднять `docker compose up -d postgres-backend`
+- **Использовать `isLoading` вместо `isPending`**: в react-query v5 у отключённого запроса `isPending` всегда `true` → приложение вечно «Загрузка...». `isLoading = isPending && isFetching` корректно false для отключённого запроса. Решение зафиксировано комментарием в коде.
+- **Удалить `dev-2` и `check-dto`**: обе полностью устарели, контент или уже в `dev`, или на мёртвом pre-FSD коде. Сборка гити не потеряна (0- новый). Oстальные ветки сохранены как архив (все полностью слиты).
+- **Оставить `main` без изменений**: ждёт финального merge `dev → main` после миграции тулчейна.
 
 ## Next Steps
-1. **Сообщить пользователю о завершении merge** — dev стабилен, все проверки зелёные
+1. **Сообщить пользователю о завершении запуска и фикса** — dev стабилен, проект работает (backend в Docker + frontend на 5173), все web-проверки зелёные, фикс закоммичен (`b834c47`)
 2. **Миграция тулчейна** (`chore/toolchain-upgrade-2026-08` от dev): стартует отдельной задачей после подтверждения пользователя (план: `thoughts/shared/plans/2026-08-06-toolchain-migration-plan.md`)
 3. После миграции: стабильное состояние → merge в `main`; затем планы новых фич
 
 ## Critical Context
-- **Коммит merge**: `5eecd6e` на ветке `dev`
-- **Пофикшенный файл**: `web/src/widgets/Sidebar.test.tsx` (ребрендинг «Student Hub» → «UniPlanner»)
+- **Коммит фикса**: `b834c47` на ветке `dev` (user-context.tsx + user-context.test.tsx); merge web→dev: `5eecd6e` + `5aca5cb` (ledger)
+- **Файл с багом**: `C:\Users\user\Desktop\shit\dev\coursework-03\ecampus-uniplanner\web\src\entities\user\model\user-context.tsx` (строка ~28-34: `const loading = meQuery.isLoading;`)
+- **Тестовый аккаунт создан в БД backend**: test@test.ru / password123 / «Тест Тест» / «ИС-21» — в базе Postgres контейнера; можно тестировать логин этим аккаунтом
+- **Порт/URL**: backend `http://localhost:8080/api/v1`, frontend `http://localhost:5173` (CORS разрешает 5173, 5174, 3000)
+- **LoginRequest** (в `shared/.../ApiModels.kt` строка 37): `data class LoginRequest(email: String, password: String)` — поле `email`, не `username`
+- **Env для gradle**: обязателен JDK 21 (`JAVA_HOME='C:\Program Files\Eclipse Adoptium\jdk-21.0.8.9-hotspot'`), gradle wrapper 8.14.3 с `auto-detect=false`/`auto-download=false`
+- **Docker**: Docker Desktop запущен (вручную), postgres-backend healthy на 5432, backend контейнер стартовал (Tomcat на 8080, context path `/api/v1`)
 - **Backend**: Spring Boot 1.0.0 plain jar БЕЗ исходников (закомпилен заранее) — исходники Kotlin отсутствуют в репо; контроллеры: Auth, Note, ParserSync, Schedule, Task, UniversityAuth
-- **Окружение машины**: Windows, bash-шелл в терминале; JAVA_HOME → JDK 25.0.3.9 (backend требует JDK 21 — передавать `JAVA_HOME='C:\Program Files\Eclipse Adoptium\jdk-21.0.8.9-hotspot'`); Docker Desktop запускается вручную, PostgreSQL через `docker compose up -d postgres-backend`; локальный сервис `postgresql-x64-17` остановлен и не стартует без прав администратора
-- **Ключевой риск миграции Bun**: Vite 8 (Rolldown) имеет нативные зависимости (rolldown ~1.2.0, lightningcss ^1.33.0, esbuild, oxc)
+- **Окружение машины**: Windows, bash-шелл; JAVA_HOME → JDK 25.0.3.9 (backend требует JDK 21 — передавать явно); Docker Desktop вручную, PostgreSQL через `docker compose up -d`; локальный сервис `postgresql-x64-17` остановлен
 - **Gradle**: wrapper 8.14.3, `org.gradle.configuration-cache=true`, `auto-detect=false`/`auto-download=false` — сборка использует JAVA_HOME
 - **Хвосты JS-таргета**: `kotlin-js-store/package-lock.json` (150 KB, tracked), корневые `package.json` `{}` + `package-lock.json` (tracked, пустые), `kotlin.js.yarn=false` и `kotlin.daemon.useNewMemoryManager=true` в `gradle.properties`
