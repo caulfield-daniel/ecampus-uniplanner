@@ -137,7 +137,7 @@ New endpoint recipe: add `XxxRepository` (`async def upsert/upsert_many/get_*`) 
 - Do use absolute `from app.*` imports in Python.
 - Do use 4-layer Pydantic schemas and `XxxRepository` classes in the parser.
 - Do use `@Serializable` on every Kotlin model; JSON Schemas (`api/schemas/*.json`) and web types are generated from them (`JsonSchemaGeneratorTest` guards drift).
-- Do regenerate schemas and web types after changing Kotlin models: `./gradlew :shared:generateJsonSchemas && (cd web && npm run generate:types)`.
+- Do regenerate schemas and web types after changing Kotlin models: `./gradlew :shared:generateJsonSchemas && (cd web && bun run generate:types)`.
 
 **Don't**
 - Don't use relative imports (`from .`) in the parser.

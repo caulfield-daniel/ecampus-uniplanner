@@ -29,12 +29,12 @@ KMP shared-модуль и заготовка Android-клиента — арх�
 
 | Компонент           | Технологии                                                                 |
 |---------------------|----------------------------------------------------------------------------|
-| Shared-модуль       | Kotlin Multiplatform (JVM таргет), kotlinx.serialization                    |
-| Бэкенд              | Kotlin, Spring Boot 3, Spring Data JPA, Spring Security, JWT, Flyway, PostgreSQL |
-| Веб-клиент          | React, TypeScript, Vite, FSD                                                |
+| Shared-модуль       | Kotlin 2.4.10 Multiplatform (JVM 25), kotlinx-serialization 1.11.0, BuildConfig 6.0.10 |
+| Бэкенд              | Kotlin, Spring Boot 3, Spring Data JPA, Spring Security, JWT, Flyway, PostgreSQL (JDK 21) |
+| Веб-клиент          | React 19.2, TypeScript 5.9, Vite 8.2, Bun 1.3.14, FSD                    |
 | Android-клиент      | Kotlin, Jetpack Compose (план на будущее, не в текущей итерации)           |
 | Парсер              | Python, FastAPI, SQLAlchemy, BeautifulSoup, PostgreSQL (своя БД)            |
-| Инфраструктура      | Gradle, Docker / docker-compose (опционально), GitHub Actions (CI)          |
+| Инфраструктура      | Gradle 9.6.1, Docker / docker-compose (опционально), GitHub Actions (CI)          |
 
 ## Структура проекта
 
@@ -82,20 +82,20 @@ docs/
 - Для добавления новой модели:
   1. Создайте data-класс с аннотацией `@Serializable` в `shared/src/commonMain/kotlin/...` и добавьте его в список сериализаторов в `GenerateJsonSchemasMain.kt`.
   2. Выполните `./gradlew :shared:generateJsonSchemas` (JSON Schema в `api/schemas/`) и `./gradlew :shared:jvmTest` (golden-снапшот-тесты `JsonSchemaGeneratorTest`).
-  3. В web: `npm run generate:types` — сгенерирует `web/src/shared/types/generated/*.d.ts`; импортируйте: `import type { Model } from '@/shared/types'`.
+  3. В web: `bun run generate:types` — сгенерирует `web/src/shared/types/generated/*.d.ts`; импортируйте: `import type { Model } from '@/shared/types'`.
 
 ### Backend
 
-Backend требует JDK 21. Если в `PATH`/`JAVA_HOME` стоит другая версия Java, передайте `JAVA_HOME` явно при вызове Gradle (например, `$env:JAVA_HOME = 'C:\Program Files\Eclipse Adoptium\jdk-21.0.8.9-hotspot'` в PowerShell перед `./gradlew`). В Docker-сборке (`backend/Dockerfile`) JDK 21 уже корректный по умолчанию.
+Backend требует JDK 21 (скомпилированный Spring Boot jar без исходников). Для gradle-задач shared/JVM нужен JDK 25 (JVM_25). Если в `PATH`/`JAVA_HOME` стоит другая версия Java, передайте `JAVA_HOME` явно при вызове Gradle (например, `$env:JAVA_HOME = 'C:\Program Files\Eclipse Adoptium\jdk-25.0.3.9-hotspot'` в PowerShell перед `./gradlew`). В Docker-сборке (`backend/Dockerfile`) JDK 21 уже корректный по умолчанию.
 
 ## CI (drift-guard)
 
 GitHub Actions workflow `.github/workflows/schema-sync.yml` на каждый push в `main` и pull request:
 
 1. `./gradlew :shared:generateJsonSchemas` — регенерация `api/schemas/*.json` из `shared`.
-2. `cd web && npm ci && npm run generate:types` — регенерация TS-типов web.
+2. `cd web && bun install --frozen-lockfile && bun run generate:types` — регенерация TS-типов web.
 3. `git diff --exit-code` — **дрифт-гард**: если регенерация меняет закоммиченные артефакты, задача падает.
-4. `npm run build && npm run test && npm run lint` — проверка сборки и тестов.
+4. `bun run build && bun run test && bun run lint` — проверка сборки и тестов.
 
 ## Статистика разработки
 
