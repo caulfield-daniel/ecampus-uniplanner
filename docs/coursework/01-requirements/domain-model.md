@@ -1,5 +1,7 @@
 # Доменная модель
 
+> **Статус: архив (курсовой проект, защищён в июне 2026).** Документ не обновляется и не является источником истины. Актуальная документация — [docs/README.md](../../README.md).
+
 Курсовой проект реализует 7 бизнес-сущностей (требование методички — 5-7+), разделённых на два типа по источнику и зоне ответственности.
 
 ## Ядро (управляется backend, полноценные Entity с бизнес-методами)
@@ -25,4 +27,4 @@
 
 - `User 1—N Task`, `User 1—N Note` — через `user_id` (FK на `users.id`).
 - `CachedLesson` не имеет FK на `User`, связь по `group_name` (denormalized — кэш для скорости чтения расписания).
-- `CachedLesson 1—N Task`, `CachedLesson 1—N Note` — через необязательный `lesson_id` (`ON DELETE SET NULL`), см. [03-database/er-diagram.md](../03-database/er-diagram.md). Позволяет привязать задачу/заметку к конкретному занятию (UC-06 в [use-case-specifications.md](use-case-specifications.md)).
+- `CachedLesson 1—N Task`, `CachedLesson 1—N Note` — через необязательный `lesson_id` (`ON DELETE SET NULL`), см. [03-database/er-diagram.md](../../03-database/er-diagram.md). Позволяет привязать задачу/заметку к конкретному занятию (UC-06 в [use-case-specifications.md](use-case-specifications.md)).

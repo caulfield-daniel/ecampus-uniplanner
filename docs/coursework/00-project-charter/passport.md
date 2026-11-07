@@ -1,5 +1,7 @@
 # Паспорт проекта
 
+> **Статус: архив (курсовой проект, защищён в июне 2026).** Документ не обновляется и не является источником истины. Актуальная документация — [docs/README.md](../../README.md).
+
 **Название:** Ecampus UniPlanner — кроссплатформенный студенческий органайзер с автоматическим расписанием.
 
 **Траектория:** **Б («Веб-ориентированная»)** методички дисциплины «Программная инженерия».
@@ -16,10 +18,10 @@
 |---|---|---|
 | Web UI 5+ страниц | ✅ | `web/src/pages/` — Login, Today, Schedule, Tasks, Notes (+ слайд-панель занятия) |
 | Адаптивная вёрстка | ⏳ | desktop-first на Tailwind, мобильная адаптация не сделана — доработать при наличии времени |
-| Аутентификация и авторизация (роли) | ✅ | JWT, роли `ROLE_USER`/`ROLE_ADMIN`/`ROLE_MANAGER` (см. [02-architecture/pcmef-diagram.md](../02-architecture/pcmef-diagram.md)) |
-| REST API | ✅ | 18 эндпоинтов (см. [04-detailed-design/api-design.md](../04-detailed-design/api-design.md)), что превышает обязательный минимум (8) |
-| Модульное тестирование (JUnit, >40%) | ✅ | `backend/src/test/kotlin/.../service/*Test.kt`, JaCoCo, см. [06-testing/tests.md](../06-testing/tests.md) |
-| Развёртывание (сервлет-контейнер) | ✅ | Spring Boot embedded Tomcat в Docker, см. [08-deployment/admin-guide.md](../08-deployment/admin-guide.md) |
+| Аутентификация и авторизация (роли) | ✅ | JWT, роли `ROLE_USER`/`ROLE_ADMIN`/`ROLE_MANAGER` (см. [02-architecture/pcmef-diagram.md](../../02-architecture/pcmef-diagram.md)) |
+| REST API | ✅ | 18 эндпоинтов (см. [04-detailed-design/api-design.md](../../04-detailed-design/api-design.md)), что превышает обязательный минимум (8) |
+| Модульное тестирование (JUnit, >40%) | ✅ | `backend/src/test/kotlin/.../service/*Test.kt`, JaCoCo, см. [06-testing/tests.md](../../06-testing/tests.md) |
+| Развёртывание (сервлет-контейнер) | ✅ | Spring Boot embedded Tomcat в Docker, см. [08-deployment/admin-guide.md](../../08-deployment/admin-guide.md) |
 
 ## Архитектурный запас (бонус «инновационность», не обязательное требование)
 
@@ -27,4 +29,4 @@
 - Docker Compose для развёртывания backend + PostgreSQL.
 - Живая синхронизация расписания с микросервисом-парсером (`POST /parser/sync`) — backend забирает уже накопленные парсером данные реального вуза, проверено живым запросом (не demo-seed).
 - Личный вход пользователя в ИС вуза через капчу (`UniversityAuthController`) — отдельный, более сложный флоу, чем сервисный аккаунт парсера.
-- Фронтенд на FSD-архитектуре (Feature-Sliced Design) + TanStack Query + shadcn/ui/Tailwind v4 — современный стек сверх минимальных требований методички, см. [07-ui/screens.md](../07-ui/screens.md).
+- Фронтенд на FSD-архитектуре (Feature-Sliced Design) + TanStack Query + shadcn/ui/Tailwind v4 — современный стек сверх минимальных требований методички, см. [07-ui/screens.md](../../07-ui/screens.md).

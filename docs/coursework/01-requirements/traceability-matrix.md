@@ -1,10 +1,12 @@
 # Матрица трассировки: требования → UC → реализация
 
+> **Статус: архив (курсовой проект, защищён в июне 2026).** Документ не обновляется и не является источником истины. Актуальная документация — [docs/README.md](../../README.md).
+
 | Требование методички (трактория Б) | UC | Реализация |
 |---|---|---|
 | Аутентификация и авторизация | UC-01, UC-02 | `AuthController`, `JwtService`, `JwtAuthFilter` |
 | Web UI 5+ страниц | UC-02..UC-06 | `web/src/pages/{LoginPage,TodayPage,SchedulePage,TasksPage,NotesPage}.tsx` |
-| REST API ≥8 эндпоинтов | все UC | 18 эндпоинтов, см. [04-detailed-design/api-design.md](../04-detailed-design/api-design.md) |
+| REST API ≥8 эндпоинтов | все UC | 18 эндпоинтов, см. [04-detailed-design/api-design.md](../../04-detailed-design/api-design.md) |
 | Модульное тестирование | UC-01..UC-07 (сервисный слой) | `backend/src/test/kotlin/.../service/*Test.kt` |
 | Работа с внешним источником данных (бонус) | UC-07 | `ParserClient` (Foundation) ↔ микросервис-парсер |
 | Ролевая модель | UC-07 (Manager), UC-01..UC-09 (User) | `UserEntity.role`, `ROLE_USER`/`ROLE_MANAGER`/`ROLE_ADMIN` |
