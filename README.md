@@ -114,14 +114,14 @@ alembic upgrade head
 uvicorn app.main:app --reload   # :8000, docs at /docs
 ```
 
-## CI (drift-guard)
+## CI
 
-GitHub Actions workflow `.github/workflows/schema-sync.yml` на push в `main`/`dev` и pull request:
+GitHub Actions workflow `.github/workflows/ci.yml` на push в `main`/`dev`, pull request и вручную:
 
-1. `./gradlew :shared:generateJsonSchemas` — регенерация `api/schemas/*.json` из `shared`.
-2. `cd web && bun install --frozen-lockfile && bun run generate:types` — регенерация TS-типов web.
-3. `git diff --exit-code` — **дрифт-гард**: если регенерация меняет закоммиченные артефакты, задача падает.
-4. `bun run build && bun run test && bun run lint` — проверка сборки и тестов.
+1. **schema-drift** — `./gradlew :shared:generateJsonSchemas` + `bun run generate:types`, затем `git diff --exit-code`: если регенерация меняет закоммиченные артефакты, задача падает.
+2. **shared** — `./gradlew :shared:jvmTest` (golden-снапшоты JSON Schema, валидаторы).
+3. **backend** — `./gradlew :backend:test` на service-контейнере `postgres:16` (сервисные тесты + `contextLoads`).
+4. **web** — `bun run build && bun run test && bun run lint`.
 
 ## Ветки и релизы
 

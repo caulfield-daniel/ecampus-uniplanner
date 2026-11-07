@@ -2,7 +2,6 @@
 .gradle/
 build/
 */build/
-!gradle-wrapper.jar
 
 # IntelliJ IDEA
 .idea/
@@ -29,6 +28,9 @@ Thumbs.db
 *.jar
 *.war
 *.ear
+
+# Gradle wrapper JAR must be committed (negation must come after *.jar)
+!gradle/wrapper/gradle-wrapper.jar
 
 # Temporary files
 *.tmp

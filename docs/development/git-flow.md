@@ -25,14 +25,25 @@ feat/*  fix/*  chore/*    ← рабочие ветки, создаются от
 
 ## CI
 
-`.github/workflows/schema-sync.yml` запускается на push в `main`/`dev` и на все pull request:
+GitHub Actions workflow `.github/workflows/ci.yml` запускается на push в `main`/`dev`, на все pull request и вручную (`workflow_dispatch`). Джобы:
 
-1. `./gradlew :shared:generateJsonSchemas` — регенерация `api/schemas/*.json`.
-2. `bun run generate:types` — регенерация TS-типов web.
-3. `git diff --exit-code` — drift-guard: регенерация не должна менять закоммиченные артефакты.
-4. `bun run build && bun run test && bun run lint`.
+| Джоба | Что проверяет |
+|---|---|
+| `schema-drift` | `./gradlew :shared:generateJsonSchemas` + `bun run generate:types` → `git diff --exit-code` (дрейф артефактов = fail) |
+| `shared` | `./gradlew :shared:jvmTest` — golden-снапшоты JSON Schema и валидаторы |
+| `backend` | `./gradlew :backend:test` на service-контейнере `postgres:16` (сервисные тесты + `contextLoads`); JaCoCo-отчёт артефактом |
+| `web` | `bun run build`, `bun run test`, `bun run lint` |
 
-Правило: если меняешь модель в `shared/ApiModels.kt` — регенерируй артефакты и коммить их вместе с изменением, иначе drift-guard упадёт.
+Правило: если меняешь модель в `shared/ApiModels.kt` — регенерируй артефакты и коммить их вместе с изменением, иначе `schema-drift` упадёт.
+
+Локальный эквивалент перед PR:
+
+```bash
+./gradlew :shared:generateJsonSchemas && (cd web && bun run generate:types) && git diff --exit-code
+./gradlew :shared:jvmTest
+./gradlew :backend:test          # нужен живой PostgreSQL (docker compose up -d postgres-backend)
+cd web && bun run build && bun run test && bun run lint
+```
 
 ## Архив курсового
 

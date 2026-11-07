@@ -13,4 +13,4 @@ Backend и БД развёртываются через Docker Compose; фрон
 ## Ключевые решения этапа
 
 - Flyway применяет миграции автоматически при старте backend — без отдельного шага «накатить схему вручную».
-- CI реализован: `.github/workflows/schema-sync.yml` — drift-guard генерации артефактов + сборка/тесты/линт web на push в `main`/`dev` и на pull request (см. [../development/git-flow.md](../development/git-flow.md)). CD и облачный деплой пока не настроены.
+- CI реализован: `.github/workflows/ci.yml` — drift-guard генерации артефактов, тесты shared, тесты backend на PostgreSQL, сборка/тесты/линт web; запускается на push в `main`/`dev`, PR и вручную (см. [../development/git-flow.md](../development/git-flow.md)). CD и облачный деплой пока не настроены.

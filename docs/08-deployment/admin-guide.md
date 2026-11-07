@@ -103,5 +103,5 @@ npm run build   # tsc -b && vite build → web/dist
 
 ## Известные ограничения развёртывания
 
-- CI есть только для drift-guard и web (`.github/workflows/schema-sync.yml`); backend/parser тесты и деплой в CI пока не входят. CD не настроен.
+- CI есть для drift-guard, shared, backend (с PostgreSQL) и web — `.github/workflows/ci.yml`; деплой в CI пока не входит. CD не настроен.
 - Синхронизация расписания (`POST /parser/sync`) — без cron, вызывается вручную (см. UC-07 в [01-requirements/use-case-specifications.md](../coursework/01-requirements/use-case-specifications.md)).

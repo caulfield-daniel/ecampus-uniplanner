@@ -158,7 +158,7 @@ parser API   http://localhost:8000/api/v1/parser/*   (internal service; Pydantic
 - **University website** (`https://ecampus.ncfu.ru/schedule`) — scraped by the parser; session auth via `cookies.json` file (`services/auth/cookie_file_auth.py`).
 - **PostgreSQL** — parser DB (`asyncpg`), migrations via Alembic.
 - **Ktor backend (planned)** — Supabase (PostgreSQL) + JWT per README; not implemented. **Superseded:** the backend is implemented on Kotlin/Spring Boot 3 with PostgreSQL + JWT (`backend/`).
-- **CI (GitHub Actions):** `.github/workflows/schema-sync.yml` — drift-guard регенерации (KMP shared → `api/schemas/*.json` → TS-типы web, см. Build & Deploy). Docker и cloud-деплой не настроены.
+- **CI (GitHub Actions):** `.github/workflows/ci.yml` — drift-guard регенерации (KMP shared → `api/schemas/*.json` → TS-типы web), тесты shared, тесты backend на PostgreSQL, сборка/тесты/линт web (см. Build & Deploy). Docker и cloud-деплой не настроены.
 
 ## Configuration
 
@@ -208,14 +208,15 @@ alembic upgrade head         # DB migrations (parser/alembic.ini)
 uvicorn app.main:app --reload   # serves :8000, docs at /docs
 ```
 
-# CI (GitHub Actions) — `.github/workflows/schema-sync.yml`
-# Drift-guard: регенерация не должна менять закоммиченные артефакты.
-# 1. ./gradlew :shared:generateJsonSchemas          # KMP → api/schemas/*.json
-# 2. cd web && bun install --frozen-lockfile && bun run generate:types     # → src/shared/types/generated/*.d.ts
-# 3. git diff --exit-code                            # ← дрифт-гард: расхождение = fail
-# 4. cd web && bun run build && bun run test && bun run lint
+# CI (GitHub Actions) — `.github/workflows/ci.yml`
+# Триггеры: push в main/dev + все pull request + workflow_dispatch.
+# Джобы:
+# 1. schema-drift: :shared:generateJsonSchemas + bun run generate:types → git diff --exit-code
+# 2. shared:       ./gradlew :shared:jvmTest (golden-снапшоты + валидаторы)
+# 3. backend:      ./gradlew :backend:test на service-контейнере postgres:16
+# 4. web:          bun run build && bun run test && bun run lint
 
-> Note: web-пакеты управляются через Bun 1.3.14 (`web/bun.lock`); корневой `package.json` удалён. CI-дрифт-гард регенерации: `.github/workflows/schema-sync.yml`. Docker и cloud-деплой не настроены.
+> Note: web-пакеты управляются через Bun 1.3.14 (`web/bun.lock`); корневой `package.json` удалён. CI: `.github/workflows/ci.yml`. Docker и cloud-деплой не настроены.
 
 ## Known Gaps / Notes
 
