@@ -1,6 +1,6 @@
 ---
 session: ses_044
-updated: 2026-11-07T00:00:00.000Z
+updated: 2026-11-07T16:55:00.000Z
 ---
 
 # Session Summary
@@ -35,7 +35,7 @@ updated: 2026-11-07T00:00:00.000Z
 - [x] **Git-топология**: `git merge -s ours main` в рабочей ветке → `main` стал предком; `dev` и `main` локально переведены на `1cf790f` (fast-forward).
 - [x] **Коммиты**: `4573dd9` (архив курсового пакета), `3a387a3` (перевод живых доков в продуктовую рамку), `1cf790f` (merge-коммит, фиксирующий превосходство продуктового состояния над курсовым `main`).
 
-## План A: релизная стабилизация (выполнено локально)
+## План A: релизная стабилизация (выполнено, CI зелёный)
 
 Ветка `chore/release-stabilization-2026-11`.
 
@@ -52,20 +52,16 @@ updated: 2026-11-07T00:00:00.000Z
   - backend: **32/32** (8 suites, 0 failures) на живом `postgres:16` из compose
 - [x] **Fresh-clone проверка** (локальный клон ветки в temp): `gradlew --version` работает, `bun install --frozen-lockfile` + `bun run build` OK, `:shared:generateJsonSchemas` + `generate:types` → `git status --porcelain` пуст.
 - [x] **Коммит**: `ce71cdf` (CI + wrapper JAR + compose env + docs).
+- [x] **Push выполнен**: `archive/coursework-2026` = `53a6795`, `dev` = `main` = `33954f4`; теги `coursework-defense-2026-06` и `v1.0.0` в origin.
+- [x] **Первый прогон CI упал только на `schema-drift`** (`shared`, `backend`, `web` — success). Причина: `gradlew` лежал в индексе как `100644`, а CI выполнял `chmod +x` → на Linux `git diff --exit-code` видел mode-change и падал. Исправлено: бит `100755` закоммичен в индекс (`git update-index --chmod=+x`), шаги `chmod` убраны из workflow.
+- [x] **Actions обновлены** до актуальных мажоров: `checkout@v7`, `setup-java@v6`, `upload-artifact@v7` — убраны Node 20 deprecation warnings.
+- [x] **Коммит** `33954f4`; **повторный CI на `dev` и `main` — success** (все 4 джобы, включая `schema-drift`).
+- [x] **Тег `v1.0.0`** перенесён на `33954f4` (проверенный зелёным CI) и запушен (force).
 
-### In Progress
+### Next Steps
 
-- [ ] **Push в origin не выполнен**: Git Credential Manager требует интерактивной аутентификации (`Invalid username or token`, HTTPS). Нужно выполнить вручную:
-  ```bash
-  git push origin archive/coursework-2026 dev main
-  git push origin refs/tags/coursework-defense-2026-06 refs/tags/v1.0.0
-  ```
-- [ ] **Тег `v1.0.0`** создан локально на `main` (provisional — пересоздать, если CI на первом push покраснеет).
-
-### Blocked
-
-- Push заблокирован отсутствием валидных credentials в неинтерактивной сессии (credential.helper=manager).
-- CI не может быть проверен до push (workflow_dispatch/PR тоже требуют origin).
+1. Опционально: branch protection на `main`/`dev` (require `CI`).
+2. Дальше по стратегии: фича «Университет» (ветка B) или автоматизация/админка (ветка C).
 
 ## Key Decisions
 
