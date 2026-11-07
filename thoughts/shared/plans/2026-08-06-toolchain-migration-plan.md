@@ -1,11 +1,13 @@
 ---
 date: 2026-08-06
 topic: "Миграция тулчейна на современные стабильные версии"
-status: validated
-execution_session: отдельная ветка (не начата)
+status: done
+execution_session: ses_042b (ветка chore/toolchain-upgrade-2026-08, влита в dev в ses_043)
 ---
 
 # План: Миграция тулчейна на современные стабильные версии
+
+> **Выполнено.** Все этапы 0–6 закрыты и проверены (см. `thoughts/ledgers/CONTINUITY_ses_042b.md` и `CONTINUITY_ses_043.md`). План оставлен как исторический документ. Фактическая база — `dev`, а не `web`.
 
 ## Цель
 
@@ -82,42 +84,42 @@ execution_session: отдельная ветка (не начата)
 ## Этапы
 
 ### Этап 0. Спайк совместимости (критично до старта)
-- [ ] `bun install && bun run build` на **текущих** версиях — проверить нативные модули Vite 8 (rolldown, lightningcss) под Bun
-- [ ] Kotlin 2.4.10: доступен ли `JvmTarget.JVM_25` (fallback JVM_24)
-- [ ] buildconfig 6.0.10: совместим ли текущий DSL (`useKotlinOutput`, `buildConfigField`)
-- [ ] Golden-снимки JsonSchemaGeneratorTest стабильны при Kotlin 2.4
+- [x] `bun install && bun run build` на **текущих** версиях — проверить нативные модули Vite 8 (rolldown, lightningcss) под Bun
+- [x] Kotlin 2.4.10: доступен ли `JvmTarget.JVM_25` (fallback JVM_24)
+- [x] buildconfig 6.0.10: совместим ли текущий DSL (`useKotlinOutput`, `buildConfigField`)
+- [x] Golden-снимки JsonSchemaGeneratorTest стабильны при Kotlin 2.4
 - **Выход:** отчёт; если Bun ломает сборку — остаёмся на npm (переход Bun отменяется, остальное продолжается)
 
 ### Этап 1. Web: бомп пакетов (до Bun)
-- [ ] `web/package.json`: vite `^8.2.0` (без overrides), plugin-react `^6.0.5`, react/react-dom 19.2.8, router 7.18.2, tailwind 4.3.3, jsdom 30.0.1, hooks 7.1.1, typescript-eslint 8.66.0, lucide 1.29.0, query 5.101.4, актуальные @types
-- [ ] Не трогаем: TS ~5.9.3, ESLint ^9.39.1, vitest ^4.1.10 (уже latest), msw, sonner, json-schema-to-typescript (latest)
+- [x] `web/package.json`: vite `^8.2.0` (без overrides), plugin-react `^6.0.5`, react/react-dom 19.2.8, router 7.18.2, tailwind 4.3.3, jsdom 30.0.1, hooks 7.1.1, typescript-eslint 8.66.0, lucide 1.29.0, query 5.101.4, актуальные @types
+- [x] Не трогаем: TS ~5.9.3, ESLint ^9.39.1, vitest ^4.1.10 (уже latest), msw, sonner, json-schema-to-typescript (latest)
 - **Критерий:** `npm run build && npm run test && npm run lint` зелёные (ещё на npm)
 
 ### Этап 2. Bun 1.3.14
-- [ ] `packageManager: "bun@1.3.14"` в package.json; удалить package-lock.json, node_modules
-- [ ] `bun install` → `bun.lock`; `bun run build/test/lint/generate:types` зелёные; drift-guard (generate:types → diff 0)
+- [x] `packageManager: "bun@1.3.14"` в package.json; удалить package-lock.json, node_modules
+- [x] `bun install` → `bun.lock`; `bun run build/test/lint/generate:types` зелёные; drift-guard (generate:types → diff 0)
 - **Критерий:** все скрипты работают через `bun run`
 
 ### Этап 3. JVM/KMP
-- [ ] `libs.versions.toml`: kotlin 2.4.10, kotlinxSerialization 1.11.0, buildconfig 6.0.10
-- [ ] wrapper: gradle-9.6.1; `shared/build.gradle.kts`: `JvmTarget.JVM_25`
-- [ ] `./gradlew :shared:jvmTest` + `generateJsonSchemas` → drift-guard 0 (api/schemas без изменений)
+- [x] `libs.versions.toml`: kotlin 2.4.10, kotlinxSerialization 1.11.0, buildconfig 6.0.10
+- [x] wrapper: gradle-9.6.1; `shared/build.gradle.kts`: `JvmTarget.JVM_25`
+- [x] `./gradlew :shared:jvmTest` + `generateJsonSchemas` → drift-guard 0 (api/schemas без изменений)
 - **Критерий:** `./gradlew buildAll` зелёный, артефакты не изменились
 
 ### Этап 4. Чистка хвостов
-- [ ] `git rm kotlin-js-store/package-lock.json`; удалить корневые package.json/package-lock.json
-- [ ] `gradle.properties`: убрать `kotlin.js.yarn=false`, `kotlin.daemon.useNewMemoryManager=true`
+- [x] `git rm kotlin-js-store/package-lock.json`; удалить корневые package.json/package-lock.json
+- [x] `gradle.properties`: убрать `kotlin.js.yarn=false`, `kotlin.daemon.useNewMemoryManager=true`
 
 ### Этап 5. CI
-- [ ] `schema-sync.yml`: setup-java 25, setup-node → `oven-sh/setup-bun@v2` (1.3.14), `bun install --frozen-lockfile`, `bun run *`, cache `web/bun.lock`
+- [x] `schema-sync.yml`: setup-java 25, setup-node → `oven-sh/setup-bun@v2` (1.3.14), `bun install --frozen-lockfile`, `bun run *`, cache `web/bun.lock`
 
 ### Этап 6. Документация
-- [ ] README/ARCHITECTURE/CODE_STYLE: Java 25, Gradle 9.6, Kotlin 2.4, Bun вместо npm
+- [x] README/ARCHITECTURE/CODE_STYLE: Java 25, Gradle 9.6, Kotlin 2.4, Bun вместо npm
 
 ### Этап 7. DoD
-- [ ] `bun run build/test/lint`, `./gradlew :shared:jvmTest`, `generateJsonSchemas` — drift-guard 0
-- [ ] Свежий clone на ветке миграции собирается по пайплайну CI
-- [ ] Один коммит на этап; итоговый коммит-отчёт «toolchain upgraded»
+- [x] `bun run build/test/lint`, `./gradlew :shared:jvmTest`, `generateJsonSchemas` — drift-guard 0
+- [x] Свежий clone на ветке миграции собирается по пайплайну CI
+- [x] Один коммит на этап; итоговый коммит-отчёт «toolchain upgraded»
 
 ## Вне скоупа (сознательно)
 

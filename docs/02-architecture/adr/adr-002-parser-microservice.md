@@ -26,9 +26,9 @@
 
 ## Решение
 
-Парсер — отдельный микросервис. Для backend он внешняя зависимость уровня Foundation (`ParserClient`, `WebClient`), а не отдельный слой PCMEF — методичка допускает такое отступление при микросервисной архитектуре.
+Парсер — отдельный микросервис. Для backend он внешняя зависимость уровня Foundation (`ParserClient`, `WebClient`), а не отдельный слой PCMEF: микросервисная архитектура допускает такое отступление.
 
 ## Последствия
 
 - Контракт между сервисами зафиксирован в `api/parser-api.yaml`.
-- Синхронизация (`POST /parser/sync`) — ручная, без cron (см. [01-requirements/use-case-specifications.md](../../01-requirements/use-case-specifications.md), UC-07).
+- Синхронизация (`POST /parser/sync`) — ручная, без cron (см. [01-requirements/use-case-specifications.md](../../coursework/01-requirements/use-case-specifications.md), UC-07).

@@ -46,7 +46,7 @@ cd parser
 
 ### Ручная синхронизация расписания (до появления админ-панели)
 
-Админ-панель для управления синхронизацией отложена (см. [10-final-report/summary.md](../10-final-report/summary.md)). До её реализации синхронизация выполняется вручную в два шага: сначала парсер сам обновляет своё хранилище живыми данными с сайта вуза, затем backend забирает уже накопленное у парсера в свой кэш `cached_lessons`.
+Админ-панель для управления синхронизацией отложена (см. [10-final-report/summary.md](../coursework/10-final-report/summary.md)). До её реализации синхронизация выполняется вручную в два шага: сначала парсер сам обновляет своё хранилище живыми данными с сайта вуза, затем backend забирает уже накопленное у парсера в свой кэш `cached_lessons`.
 
 **Шаг 1 — re-scrape живых данных парсером.** Эндпоинт расписания вуза не требует авторизации (подтверждено эмпирически, см. [02-architecture/microservices.md](../02-architecture/microservices.md)) — `run-incremental` использует `NoAuthAuthenticator` и не зависит от `parser/cookies.json`:
 
@@ -79,7 +79,7 @@ cd parser
 BACKEND_JWT=<JWT> ./venv/Scripts/python.exe bulk_sync.py --from 2026-03-02 --to 2026-04-27
 ```
 
-Проверено на полном прогоне: 866/866 групп синхронизированы без ошибок (после исправления бага из [05-implementation/code-structure.md](../05-implementation/code-structure.md) — повторный sync уже существующих данных требовал `@Transactional`, отсутствовавшего на `ParserSyncServiceImpl.syncGroupSchedule`).
+Проверено на полном прогоне: 866/866 групп синхронизированы без ошибок (после исправления бага из [05-implementation/code-structure.md](../coursework/05-implementation/code-structure.md) — повторный sync уже существующих данных требовал `@Transactional`, отсутствовавшего на `ParserSyncServiceImpl.syncGroupSchedule`).
 
 ## Фронтенд
 
@@ -99,9 +99,9 @@ npm run dev
 npm run build   # tsc -b && vite build → web/dist
 ```
 
-`web/dist` — статические файлы, разворачиваются любым веб-сервером/CDN; отдельный Dockerfile для фронтенда в текущей итерации не заведён (осознанное упрощение трактории Б, не требуется методичкой).
+`web/dist` — статические файлы, разворачиваются любым веб-сервером/CDN; отдельный Dockerfile для фронтенда пока не заведён.
 
 ## Известные ограничения развёртывания
 
-- Нет CI/CD-пайплайна — сборка и проверка выполняются вручную перед защитой (не обязательное требование трактории Б).
-- Синхронизация расписания (`POST /parser/sync`) — без cron, вызывается вручную (см. UC-07 в [01-requirements/use-case-specifications.md](../01-requirements/use-case-specifications.md)).
+- CI есть только для drift-guard и web (`.github/workflows/schema-sync.yml`); backend/parser тесты и деплой в CI пока не входят. CD не настроен.
+- Синхронизация расписания (`POST /parser/sync`) — без cron, вызывается вручную (см. UC-07 в [01-requirements/use-case-specifications.md](../coursework/01-requirements/use-case-specifications.md)).

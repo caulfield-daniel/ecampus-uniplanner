@@ -2,7 +2,7 @@
 
 ## Обзор этапа
 
-Фронтенд переписан на Feature-Sliced Design (FSD) + TanStack Query + shadcn/ui + Tailwind v4 по присланному заказчиком макету. Это не обязательное требование методички, а архитектурный/UX-запас сверх минимума трактории Б.
+Фронтенд построен на Feature-Sliced Design (FSD) + TanStack Query + shadcn/ui + Tailwind v4. FSD выбран как архитектурная основа проекта, а не как формальное требование.
 
 ## Артефакты
 
@@ -14,4 +14,4 @@
 
 - `entities` сами держат свои query-хуки и простые CRUD-мутации; `features` выделяются только там, где есть оркестрация с side-effects.
 - Привязка задачи/заметки к занятию видна на всех уровнях: внутри `LessonDetailSheet`, бейджем на страницах «Задачи»/«Заметки», и как отдельный фильтр там же.
-- Адаптивная вёрстка — desktop-first, мобильная адаптация не реализована (см. [00-project-charter/passport.md](../00-project-charter/passport.md)).
+- Адаптивная вёрстка — desktop-first, мобильная адаптация не реализована (см. [00-project-charter/passport.md](../coursework/00-project-charter/passport.md)).
