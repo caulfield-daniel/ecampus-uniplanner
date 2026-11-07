@@ -30,10 +30,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Java 25
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
@@ -43,10 +43,7 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
-      # Репозиторий закоммичен с Windows: у gradlew нет exec-бита.
-      - name: chmod gradlew
-        run: chmod +x gradlew
-
+      # gradlew закоммичен с битом 755 — chmod в CI не нужен (иначе mode-drift).
       - name: Генерация JSON Schema из shared (KMP → api/schemas)
         run: ./gradlew :shared:generateJsonSchemas
 
@@ -72,16 +69,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Java 25
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-
-      - name: chmod gradlew
-        run: chmod +x gradlew
 
       - name: Тесты shared (golden-снапшоты JSON Schema + валидаторы)
         run: ./gradlew :shared:jvmTest
@@ -114,23 +108,20 @@ jobs:
       PARSER_BASE_URL: http://localhost:8000/api/v1
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Java 25
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-
-      - name: chmod gradlew
-        run: chmod +x gradlew
 
       - name: Тесты backend (сервисы + contextLoads на PostgreSQL)
         run: ./gradlew :backend:test
 
       - name: JaCoCo отчёт
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: jacoco-report
           path: backend/build/reports/jacoco/test/html
@@ -141,7 +132,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
