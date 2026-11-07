@@ -56,7 +56,7 @@ updated: 2026-11-07T16:55:00.000Z
 - [x] **Первый прогон CI упал только на `schema-drift`** (`shared`, `backend`, `web` — success). Причина: `gradlew` лежал в индексе как `100644`, а CI выполнял `chmod +x` → на Linux `git diff --exit-code` видел mode-change и падал. Исправлено: бит `100755` закоммичен в индекс (`git update-index --chmod=+x`), шаги `chmod` убраны из workflow.
 - [x] **Actions обновлены** до актуальных мажоров: `checkout@v7`, `setup-java@v6`, `upload-artifact@v7` — убраны Node 20 deprecation warnings.
 - [x] **Коммит** `33954f4`; **повторный CI на `dev` и `main` — success** (все 4 джобы, включая `schema-drift`).
-- [x] **Тег `v1.0.0`** указывает на текущий HEAD `main` (`5ac8485`, зелёный CI) и запушен (force).
+- [x] **Тег `v1.0.0`** создан на коммите `5ac8485` (зелёный CI: все 4 джобы) и запушен (force).
 
 ### Next Steps
 
