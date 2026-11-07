@@ -7,7 +7,7 @@ updated: 2026-11-07T00:00:00.000Z
 
 ## Goal
 
-Выход из двойственности «курсовой проект → продукт»: объявить новый статус проекта, заморозить курсовой снимок в отдельной ветке, сделать `main` релизной веткой продукта, отделить архивную документацию от живой. Разработка «Плана A: Релизная стабилизация» (CI, backend-тесты, тег v1.0) в этой сессии **не начиналась** — по указанию пользователя.
+Выход из двойственности «курсовой проект → продукт»: объявить новый статус проекта, заморозить курсовой снимок в отдельной ветке, сделать `main` релизной веткой продукта, отделить архивную документацию от живой. Затем — «План A: Релизная стабилизация»: живой CI на `dev`/PR, backend-тесты на PostgreSQL, релизная гигиена и `v1.0.0`.
 
 ## Constraints & Preferences
 
@@ -35,17 +35,37 @@ updated: 2026-11-07T00:00:00.000Z
 - [x] **Git-топология**: `git merge -s ours main` в рабочей ветке → `main` стал предком; `dev` и `main` локально переведены на `1cf790f` (fast-forward).
 - [x] **Коммиты**: `4573dd9` (архив курсового пакета), `3a387a3` (перевод живых доков в продуктовую рамку), `1cf790f` (merge-коммит, фиксирующий превосходство продуктового состояния над курсовым `main`).
 
+## План A: релизная стабилизация (выполнено локально)
+
+Ветка `chore/release-stabilization-2026-11`.
+
+### Done
+
+- [x] **CI переписан**: `.github/workflows/ci.yml` вместо `schema-sync.yml`. Триггеры: push в `main`/`dev`, `pull_request`, `workflow_dispatch`. Джобы: `schema-drift`, `shared` (`:shared:jvmTest`), `backend` (`:backend:test` + service-контейнер `postgres:16` + JaCoCo-артефакт), `web` (build/test/lint). Добавлен `concurrency` с отменой устаревших прогонов.
+- [x] **Найден и исправлен блокер CI**: `gradle/wrapper/gradle-wrapper.jar` никогда не был в git (`.gitignore`: `*.jar` перекрывал `!gradle-wrapper.jar`, стоявший выше). На свежем клоне `./gradlew` падал. JAR добавлен в индекс, negation перенесена после `*.jar`.
+- [x] **docker-compose**: `POSTGRES_*`, `JWT_SECRET`, `UNIVERSITY_AUTH_ENCRYPTION_KEY`, `CORS_ORIGINS` читаются из env с dev-дефолтами (`${VAR:-default}`); добавлен корневой `.env.example`.
+- [x] **Документация**: README/ARCHITECTURE/deployment/git-flow обновлены под `ci.yml` и полную матрицу джоб.
+- [x] **Локальная верификация (Windows, JDK 25, Bun 1.3.14)**:
+  - `:shared:jvmTest` + `:shared:generateJsonSchemas` — BUILD SUCCESSFUL, drift 0
+  - `bun run generate:types` — 23 файла, drift 0
+  - web: build OK, tests **86/86**, lint чисто
+  - backend: **32/32** (8 suites, 0 failures) на живом `postgres:16` из compose
+- [x] **Fresh-clone проверка** (локальный клон ветки в temp): `gradlew --version` работает, `bun install --frozen-lockfile` + `bun run build` OK, `:shared:generateJsonSchemas` + `generate:types` → `git status --porcelain` пуст.
+- [x] **Коммит**: `ce71cdf` (CI + wrapper JAR + compose env + docs).
+
 ### In Progress
 
 - [ ] **Push в origin не выполнен**: Git Credential Manager требует интерактивной аутентификации (`Invalid username or token`, HTTPS). Нужно выполнить вручную:
   ```bash
   git push origin archive/coursework-2026 dev main
-  git push origin refs/tags/coursework-defense-2026-06
+  git push origin refs/tags/coursework-defense-2026-06 refs/tags/v1.0.0
   ```
+- [ ] **Тег `v1.0.0`** создан локально на `main` (provisional — пересоздать, если CI на первом push покраснеет).
 
 ### Blocked
 
 - Push заблокирован отсутствием валидных credentials в неинтерактивной сессии (credential.helper=manager).
+- CI не может быть проверен до push (workflow_dispatch/PR тоже требуют origin).
 
 ## Key Decisions
 
@@ -57,9 +77,10 @@ updated: 2026-11-07T00:00:00.000Z
 ## Next Steps
 
 1. **Push** (см. команды выше) — после интерактивной аутентификации.
-2. Проверить на GitHub, что `main` и `dev` совпадают, ветка `archive/coursework-2026` и тег видны.
-3. Опционально: branch protection на `main`/`dev` (require CI).
-4. Затем — «План A: Релизная стабилизация»: CI на `dev`/PR, backend-тесты с Postgres, релиз `v1.0.0`.
+2. Проверить первый прогон `CI` на GitHub (все 4 джобы); при падении — починить и пересоздать тег `v1.0.0`.
+3. Проверить на GitHub, что `main` и `dev` совпадают, ветка `archive/coursework-2026` и теги видны.
+4. Опционально: branch protection на `main`/`dev` (require CI).
+5. Дальше по стратегии: фича «Университет» (ветка B) или автоматизация/админка (ветка C).
 
 ## Critical Context
 
